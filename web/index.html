@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&display=swap" rel="stylesheet">
+<title>Momen TI</title>
+<meta name="theme-color" content="#1C2230">
+<link rel="stylesheet" href="css/style.css?v=1">
+</head>
+<body>
+<header class="topbar">
+  <a class="brand app-name" href="./">Momen TI</a>
+  <div class="row" id="who-box"></div>
+</header>
+<main class="wrap">
+  <div id="setup"></div>
+
+  <section id="login" class="hidden" style="padding-top: 8vh; max-width: 460px">
+    <h1>Satu acara, dilihat dari kamera semua orang.</h1>
+    <p class="muted">Masuk dengan akun kampus untuk membuat dan mengelola acara. Peserta tidak perlu membuka halaman ini, mereka cukup scan QR acara.</p>
+    <div id="g-btn" style="max-width:340px; min-height:44px"></div>
+    <p id="login-msg" class="msg hidden" role="alert" style="margin-top:1rem"></p>
+  </section>
+
+  <section id="dash" class="hidden">
+    <div class="row spread" style="margin: .5rem 0 1.25rem">
+      <h1 id="title" style="margin:0">Acara</h1>
+      <button class="btn" id="btn-new">Buat acara</button>
+    </div>
+    <form id="new-form" class="panel hidden" novalidate style="margin-bottom:1.5rem">
+      <h2>Acara baru</h2>
+      <p class="muted small" id="approval-note"></p>
+      <div id="form-fields"></div>
+      <p id="msg" class="msg hidden" role="alert" style="margin-top:1rem"></p>
+      <div class="row" style="margin-top:1.25rem">
+        <button class="btn" type="submit">Simpan acara</button>
+        <button class="btn ghost" type="button" id="btn-cancel">Batal</button>
+      </div>
+    </form>
+    <p class="muted" id="loading">Memuat acara…</p>
+    <ul class="event-list" id="list"></ul>
+    <div id="empty" class="panel hidden">
+      <h2>Belum ada acara</h2>
+      <p class="muted" style="margin:0">Buat acara pertama, lalu bagikan QR-nya ke peserta.</p>
+    </div>
+  </section>
+</main>
+<script src="js/config.js?v=1"></script>
+<script src="js/common.js?v=1"></script>
+<script src="js/api.js?v=1"></script>
+<script src="js/filters.js?v=1"></script>
+<script src="js/event-form.js?v=1"></script>
+<script src="js/dasbor.js?v=1"></script>
+</body>
+</html>

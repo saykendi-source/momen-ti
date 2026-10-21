@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Kamera acara</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg">
+<meta name="theme-color" content="#0A0C10">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Caveat:wght@600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css?v=1">
+<link rel="stylesheet" href="css/kamera.css?v=1">
+</head>
+<body class="cam">
+
+<section class="screen" id="s-info">
+  <div class="center"><div class="card stack">
+    <h1 id="info-title">Memuat…</h1>
+    <p id="info-text" class="muted"></p>
+    <div id="info-actions" class="stack"></div>
+  </div></div>
+</section>
+
+<section class="screen hidden" id="s-join">
+  <div class="center"><div class="card">
+    <h1 class="ev-name"></h1>
+    <p class="muted" id="join-desc"></p>
+    <div id="login-box">
+      <p class="small muted" style="margin:0 0 .5rem">Punya akun kampus?</p>
+      <div id="g-btn" style="min-height:44px"></div>
+      <p class="or" id="or">atau</p>
+    </div>
+    <form id="join-form" novalidate>
+      <div id="guest-fields">
+        <label for="guest-name">Ikut sebagai tamu</label>
+        <input id="guest-name" maxlength="40" autocomplete="name" placeholder="Nama kamu">
+      </div>
+      <div id="code-fields" class="hidden" style="margin-top:.75rem">
+        <label for="code">Kode akses acara</label>
+        <input id="code" maxlength="12" autocapitalize="characters" autocomplete="off">
+      </div>
+      <button class="btn ghost block" id="btn-join" style="margin-top:.75rem">Lanjut sebagai tamu</button>
+    </form>
+    <p class="muted small" style="margin-top:1.25rem">Foto yang kamu ambil tersimpan di album acara ini dan bisa dilihat peserta lain serta panitia. Foto disimpan di Google Drive pengelola Momen TI; minta panitia jika ingin fotomu dihapus.</p>
+    <p id="join-msg" class="msg hidden" role="alert" style="margin-top:1rem"></p>
+  </div></div>
+</section>
+
+<section class="screen hidden" id="s-cam">
+  <div class="cam-head">
+    <span class="cam-title ev-name"></span>
+    <a class="btn ghost small" id="album-link">Album</a>
+  </div>
+  <div class="viewfinder" id="vf">
+    <video id="video" playsinline muted autoplay></video>
+    <div class="frame-guide"></div>
+    <div class="flash" id="flash"></div>
+  </div>
+  <div class="filters" id="filters" role="group" aria-label="Pilih filter"></div>
+  <div class="cam-controls">
+    <div class="counter" aria-live="polite"><b id="shots">0</b><span>sisa foto</span></div>
+    <button class="shutter" id="shutter" aria-label="Ambil foto"></button>
+    <button class="side-btn" id="flip" aria-label="Ganti kamera depan/belakang">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 7h-3l-2-3H9L7 7H4a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1V8a1 1 0 0 0-1-1Z"/><path d="M9 13a3 3 0 0 1 5.2-2"/><path d="M15 13a3 3 0 0 1-5.2 2"/></svg>
+    </button>
+  </div>
+  <div class="queue-note" id="queue-note" aria-live="polite"></div>
+</section>
+
+<canvas id="canvas" hidden></canvas>
+<script src="js/config.js?v=1"></script>
+<script src="js/common.js?v=1"></script>
+<script src="js/api.js?v=1"></script>
+<script src="js/filters.js?v=1"></script>
+<script src="js/queue.js?v=1"></script>
+<script src="js/kamera.js?v=1"></script>
+</body>
+</html>
