@@ -35,7 +35,7 @@ const PT = {
 };
 
 // Aksi yang aman diulang otomatis (hanya membaca data).
-const SAFE_RETRY = ['me', 'getEvent', 'album', 'thumbs', 'photo', 'comments', 'listEvents', 'getManage', 'modList', 'modComments'];
+const SAFE_RETRY = ['me', 'getEvent', 'album', 'thumbs', 'photo', 'comments', 'listEvents', 'getManage', 'modList', 'modComments', 'boothInfo', 'wall', 'sharedPhoto'];
 
 // Jelaskan balasan yang bukan JSON (biasanya halaman error dari Google).
 function explainBadResponse(status, text) {
@@ -88,7 +88,7 @@ async function apiOnce(action, payload, timeoutMs) {
  * opts.onSlow(msg): dipanggil bila belum ada jawaban setelah 4 detik (untuk pesan "server sedang bangun").
  */
 async function api(action, payload = {}, opts = {}) {
-  const heavy = action === 'upload' || action === 'photo';
+  const heavy = ['upload', 'photo', 'boothUpload', 'sharedPhoto'].includes(action);
   const timeoutMs = opts.timeout || (heavy ? 90000 : 30000);
   const tries = opts.tries ?? (SAFE_RETRY.includes(action) || action === 'join' ? 3 : 1);
   const slowTimer = opts.onSlow && setTimeout(() => opts.onSlow('Server sedang bangun, tunggu sebentar…'), 4000);

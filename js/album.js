@@ -224,7 +224,7 @@
   function loadZipLib() {
     return zipLib || (zipLib = new Promise((res, rej) => {
       const s = document.createElement('script');
-      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+      s.src = 'js/vendor/jszip.min.js';
       s.onload = res; s.onerror = () => { zipLib = null; rej(new Error('Gagal memuat alat ZIP. Periksa koneksi.')); };
       document.head.append(s);
     }));

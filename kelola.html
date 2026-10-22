@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&display=swap" rel="stylesheet">
 <title>Kelola acara · Momen TI</title>
-<link rel="stylesheet" href="css/style.css?v=2">
+<link rel="stylesheet" href="css/style.css?v=3">
 </head>
 <body>
 <header class="topbar">
@@ -38,6 +38,28 @@
             <a class="btn ghost small" id="open-cam">Buka kamera</a>
             <a class="btn ghost small" id="open-album">Lihat album</a>
             <a class="btn ghost small" id="open-drive" target="_blank" rel="noopener">Folder Drive</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" id="booth-panel">
+      <div class="row spread"><h2 style="margin:0">Booth layar sentuh / Android TV</h2><span class="muted small" id="booth-state"></span></div>
+      <div id="booth-off" class="hidden" style="margin-top:.75rem">
+        <p class="muted">Jadikan layar sentuh atau TV berkamera di lab sebagai photobooth untuk acara ini. Foto booth langsung masuk ke album yang sama.</p>
+        <button class="btn" id="btn-booth-on">Aktifkan booth</button>
+      </div>
+      <div id="booth-on" class="hidden" style="margin-top:.75rem">
+        <div class="grid2" style="align-items:start">
+          <div>
+            <p class="small muted" style="margin:0 0 .25rem">Kode booth</p>
+            <p id="booth-pin" style="font-size:2.4rem;font-weight:800;letter-spacing:.2em;margin:0;font-variant-numeric:tabular-nums"></p>
+            <p class="small muted" style="margin:.5rem 0 0">Di layar booth, buka <b id="booth-url"></b>, lalu masukkan kode ini. Cukup sekali per perangkat.</p>
+          </div>
+          <div>
+            <label for="booth-name-input">Nama booth <span class="hint">Tampil di bingkai foto dan sebagai nama pemotret</span></label>
+            <div class="copy"><input id="booth-name-input" maxlength="30"><button class="btn ghost small" id="btn-booth-name">Simpan</button></div>
+            <button class="btn ghost small" id="btn-booth-reset" style="margin-top:.75rem">Buat kode baru (cabut semua booth lama)</button>
           </div>
         </div>
       </div>
@@ -77,13 +99,13 @@
     </section>
   </div>
 </main>
-<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
-<script src="js/config.js?v=2"></script>
-<script src="js/common.js?v=2"></script>
-<script src="js/api.js?v=2"></script>
-<script src="js/filters.js?v=2"></script>
-<script src="js/event-form.js?v=2"></script>
-<script src="js/thumbs.js?v=2"></script>
-<script src="js/kelola.js?v=2"></script>
+<script src="js/vendor/qrcode.js"></script>
+<script src="js/config.js?v=3"></script>
+<script src="js/common.js?v=3"></script>
+<script src="js/api.js?v=3"></script>
+<script src="js/filters.js?v=3"></script>
+<script src="js/event-form.js?v=3"></script>
+<script src="js/thumbs.js?v=3"></script>
+<script src="js/kelola.js?v=3"></script>
 </body>
 </html>

@@ -1,0 +1,91 @@
+/* Layar booth: layar sentuh besar / Android TV, posisi mendatar. Semua ukuran relatif terhadap layar. */
+html, body { height: 100%; }
+body.booth { margin: 0; overflow: hidden; background: #0A0C10; color: #F1F3F6; font-family: var(--font); user-select: none; -webkit-user-select: none; touch-action: manipulation; }
+.booth button { font-family: inherit; cursor: pointer; }
+.booth :focus-visible { outline: .5vmin solid #F2A93B; outline-offset: .4vmin; }
+
+#cam { position: fixed; inset: 0; width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); background: #000; transition: filter .3s, opacity .3s; }
+#cam.dim { filter: brightness(.45) blur(.6vmin); }
+#cam.off { opacity: 0; }
+
+.layer { position: fixed; inset: 0; }
+.hidden { display: none !important; }
+
+/* Panduan bingkai persegi (polaroid) */
+.guide { position: fixed; top: 50%; left: 50%; height: 68vh; aspect-ratio: 1; transform: translate(-50%, -58%); border: .35vmin solid rgba(255,255,255,.55); border-radius: 1.2vmin; box-shadow: 0 0 0 100vmax rgba(0,0,0,.45); pointer-events: none; }
+
+/* Bar atas */
+.topbar-b { position: fixed; top: 0; left: 0; right: 0; display: flex; align-items: center; justify-content: space-between; padding: 2.4vmin 3vmin; background: linear-gradient(rgba(0,0,0,.65), transparent); }
+.topbar-b .name { font-size: 3.4vmin; font-weight: 800; letter-spacing: -0.01em; }
+.topbar-b .sub { font-size: 2vmin; color: #C9CFD9; }
+.pill { display: inline-flex; align-items: center; gap: 1vmin; padding: 1.4vmin 3vmin; border-radius: 999px; border: .3vmin solid rgba(255,255,255,.35); background: rgba(10,12,16,.55); color: #F1F3F6; font-size: 2.4vmin; font-weight: 700; }
+
+/* Layar idle */
+.idle-cta { position: fixed; left: 4vmin; bottom: 5vmin; max-width: 60vw; }
+.idle-cta h1 { font-size: 7vmin; line-height: 1.02; margin: 0 0 2vmin; font-weight: 800; letter-spacing: -0.02em; }
+.idle-cta p { font-size: 2.6vmin; color: #C9CFD9; margin: 0 0 3vmin; }
+.big-btn { display: inline-flex; align-items: center; gap: 1.6vmin; font-size: 3.6vmin; font-weight: 800; padding: 2.4vmin 5vmin; border-radius: 999px; border: 0; background: #F2A93B; color: #14110A; box-shadow: 0 1vmin 4vmin rgba(242,169,59,.35); }
+.big-btn .dot { width: 3vmin; height: 3vmin; border-radius: 50%; background: #14110A; box-shadow: 0 0 0 .6vmin #F2A93B, 0 0 0 1vmin #14110A; }
+.qr-card { position: fixed; right: 4vmin; bottom: 5vmin; background: #FBFBF8; color: #1C2230; border-radius: 2vmin; padding: 2vmin; width: 24vmin; text-align: center; }
+.qr-card .qr { width: 100%; aspect-ratio: 1; }
+.qr-card .qr svg { width: 100%; height: 100%; display: block; }
+.qr-card p { margin: 1.2vmin 0 0; font-size: 1.9vmin; font-weight: 700; line-height: 1.25; }
+.idle-status { font-size: 2.2vmin; color: #F2A93B; font-weight: 700; margin-bottom: 1.5vmin; }
+
+/* Mosaik live wall */
+.wall { position: fixed; inset: 12vh 3vmin 34vh 3vmin; display: grid; grid-template-columns: repeat(4, 1fr); grid-template-rows: repeat(2, 1fr); gap: 2vmin; }
+.wall figure { margin: 0; display: grid; place-items: center; min-height: 0; animation: pop .6s ease-out both; }
+.wall img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: .6vmin; box-shadow: 0 1.2vmin 3vmin rgba(0,0,0,.5); }
+.wall figure:nth-child(odd) img { transform: rotate(-2deg); }
+.wall figure:nth-child(even) img { transform: rotate(1.6deg); }
+@keyframes pop { from { opacity: 0; transform: translateY(2vmin) scale(.96); } }
+
+/* Siap memotret */
+.ready-bottom { position: fixed; left: 0; right: 0; bottom: 0; padding: 2vmin 3vmin 4vmin; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 3vmin; background: linear-gradient(transparent, rgba(0,0,0,.75)); }
+.filters-b { display: flex; gap: 1.2vmin; flex-wrap: wrap; }
+.filters-b button { padding: 1.3vmin 2.4vmin; border-radius: 999px; border: .3vmin solid rgba(255,255,255,.3); background: rgba(10,12,16,.6); color: #F1F3F6; font-size: 2.2vmin; font-weight: 700; }
+.filters-b button[aria-pressed="true"] { background: #F1F3F6; color: #0A0C10; border-color: #F1F3F6; }
+.shutter-b { width: 16vmin; height: 16vmin; border-radius: 50%; border: 1.2vmin solid #F1F3F6; background: #F2A93B; box-shadow: inset 0 0 0 1vmin #0A0C10, 0 0 6vmin rgba(242,169,59,.45); }
+.shutter-b:active { transform: scale(.94); }
+.hint-b { justify-self: end; font-size: 2.2vmin; color: #C9CFD9; text-align: right; }
+
+/* Hitung mundur & kilat */
+#count { position: fixed; inset: 0; display: grid; place-items: center; pointer-events: none; }
+#count span { font-size: 40vmin; font-weight: 800; color: #fff; text-shadow: 0 0 6vmin rgba(0,0,0,.6); animation: tick 1s ease-out both; }
+#count small { position: absolute; bottom: 12vh; font-size: 4vmin; font-weight: 800; color: #fff; text-shadow: 0 0 3vmin rgba(0,0,0,.7); }
+@keyframes tick { from { transform: scale(1.5); opacity: 0; } 30% { opacity: 1; } to { transform: scale(.9); opacity: .85; } }
+#flash { position: fixed; inset: 0; background: #fff; opacity: 0; pointer-events: none; transition: opacity .25s ease-out; }
+#flash.on { opacity: 1; transition: none; }
+
+/* Hasil */
+.result { position: fixed; inset: 0; display: grid; grid-template-columns: 1.25fr 1fr; gap: 5vmin; align-items: center; padding: 6vmin 7vmin; background: #0A0C10; }
+.result .photo { display: grid; place-items: center; min-height: 0; height: 100%; }
+.result .photo img { max-width: 100%; max-height: 84vh; object-fit: contain; border-radius: .6vmin; box-shadow: 0 2vmin 6vmin rgba(0,0,0,.6); transform: rotate(-1.5deg); animation: drop .5s ease-out both; }
+@keyframes drop { from { transform: translateY(-4vmin) rotate(-6deg); opacity: 0; } }
+.result h2 { font-size: 5.4vmin; margin: 0 0 1vmin; font-weight: 800; line-height: 1.05; }
+.result p { font-size: 2.4vmin; color: #C9CFD9; margin: 0 0 2.5vmin; }
+.result .qr-big { width: 34vmin; aspect-ratio: 1; background: #fff; border-radius: 2vmin; padding: 1.6vmin; display: grid; place-items: center; color: #1C2230; font-size: 2.2vmin; font-weight: 700; text-align: center; }
+.result .qr-big svg { width: 100%; height: 100%; display: block; }
+.result .actions { display: flex; gap: 2vmin; margin-top: 3vmin; flex-wrap: wrap; }
+.result .back-in { font-size: 2vmin; color: #8B95A6; margin-top: 2vmin; }
+.spinner { width: 6vmin; height: 6vmin; border: .8vmin solid #E5E7EB; border-top-color: #0E7A7F; border-radius: 50%; animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.processing { position: fixed; inset: 0; display: grid; place-items: center; background: rgba(10,12,16,.7); font-size: 3.4vmin; font-weight: 800; }
+
+/* Pemasangan & pesan */
+.center-b { position: fixed; inset: 0; display: grid; place-items: center; padding: 4vmin; }
+.pair { width: min(92vw, 70vmin); text-align: center; }
+.pair h1 { font-size: 5vmin; margin: 0 0 1vmin; }
+.pair p { font-size: 2.3vmin; color: #C9CFD9; margin: 0 0 3vmin; }
+.pin-view { display: flex; justify-content: center; gap: 1.4vmin; margin-bottom: 3vmin; }
+.pin-view span { width: 8vmin; height: 10vmin; border-radius: 1.4vmin; border: .3vmin solid #3A4352; display: grid; place-items: center; font-size: 5.5vmin; font-weight: 800; background: #171B23; }
+.keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.6vmin; }
+.keypad button { height: 10vmin; border-radius: 1.6vmin; border: 0; background: #1B212C; color: #F1F3F6; font-size: 4.4vmin; font-weight: 700; }
+.keypad button:active { background: #2C3442; }
+.keypad .ok { background: #3FB5B9; color: #0C1B1C; }
+.msg-b { font-size: 2.4vmin; color: #F09A91; min-height: 3.4vmin; margin-top: 2vmin; }
+.note-b { max-width: 70vmin; text-align: center; }
+.note-b h1 { font-size: 5vmin; margin: 0 0 2vmin; }
+.note-b p { font-size: 2.6vmin; color: #C9CFD9; }
+.toast-b { position: fixed; left: 50%; top: 3vmin; transform: translateX(-50%); background: #F1F3F6; color: #0A0C10; font-size: 2.2vmin; font-weight: 700; padding: 1.2vmin 3vmin; border-radius: 999px; z-index: 50; }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }

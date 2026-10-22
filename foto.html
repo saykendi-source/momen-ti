@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Fotomu · Momen TI</title>
+<link rel="icon" href="icon.svg">
+<meta name="theme-color" content="#0A0C10">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css?v=3">
+<style>
+  body.share { background: #0A0C10; color: #F1F3F6; min-height: 100vh; }
+  body.share .muted { color: #9AA3B2; }
+  .share-wrap { max-width: 520px; margin: 0 auto; padding: 1.25rem 1.25rem 2.5rem; text-align: center; }
+  .share-wrap img { width: 100%; height: auto; border-radius: 4px; box-shadow: 0 16px 40px rgba(0,0,0,.5); margin: 1rem 0 1.25rem; }
+  .share-wrap .btn.ghost { color: #F1F3F6; box-shadow: inset 0 0 0 1.5px #3A4352; }
+  .share-wrap .skeleton { aspect-ratio: 6 / 7; margin: 1rem 0 1.25rem; background: #1B212C; }
+</style>
+</head>
+<body class="share">
+<main class="share-wrap">
+  <a class="brand" href="./" style="color:#F1F3F6">Momen TI</a>
+  <h1 id="title" style="margin-top:1rem">Fotomu</h1>
+  <p class="muted" id="sub">Memuat foto…</p>
+  <div class="skeleton" id="sk"></div>
+  <img id="img" alt="Foto dari booth" class="hidden">
+  <div class="stack" id="actions" style="display:none">
+    <button class="btn block" id="btn-save">Simpan foto</button>
+    <a class="btn ghost block" id="btn-event">Ikut memotret di acara ini</a>
+    <p class="muted small">Di iPhone, pilih “Simpan Gambar” pada menu yang muncul. Link ini berlaku 60 hari.</p>
+  </div>
+</main>
+<script src="js/config.js?v=3"></script>
+<script src="js/common.js?v=3"></script>
+<script src="js/api.js?v=3"></script>
+<script>
+(async function () {
+  const d = location.hash.slice(1);
+  if (!d) { $('#sub').textContent = 'Link foto tidak lengkap. Scan ulang QR dari booth.'; $('#sk').remove(); return; }
+  let r;
+  try { r = await api('sharedPhoto', { d }, { onSlow: (m) => { $('#sub').textContent = m; } }); }
+  catch (err) { $('#sub').textContent = err.message; $('#sk').remove(); return; }
+  $('#title').textContent = r.event.name;
+  $('#sub').textContent = `Diambil di ${r.by} · ${fmtDate(r.t)}`;
+  $('#sk').remove();
+  $('#img').src = r.data; $('#img').classList.remove('hidden');
+  $('#actions').style.display = '';
+  $('#btn-event').href = `acara.html?e=${encodeURIComponent(r.event.slug)}`;
+  const bin = atob(r.data.split(',')[1]); const arr = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+  const name = `momen-ti_${new Date(r.t).toISOString().slice(0, 19).replace(/[-:T]/g, '')}.jpg`;
+  const file = new File([arr], name, { type: 'image/jpeg' });
+  $('#btn-save').onclick = async () => {
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try { await navigator.share({ files: [file] }); return; } catch (e) { if (e.name === 'AbortError') return; }
+    }
+    const url = URL.createObjectURL(file);
+    const a = document.createElement('a'); a.href = url; a.download = name; document.body.append(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+  };
+})();
+</script>
+</body>
+</html>

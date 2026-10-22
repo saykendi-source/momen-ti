@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Booth · Momen TI</title>
+<link rel="icon" href="icon.svg">
+<meta name="theme-color" content="#0A0C10">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Caveat:wght@600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css?v=3">
+<link rel="stylesheet" href="css/booth.css?v=3">
+</head>
+<body class="booth">
+<video id="cam" playsinline muted autoplay class="off"></video>
+
+<!-- Pemasangan booth -->
+<section id="s-pair" class="layer hidden">
+  <div class="center-b"><div class="pair">
+    <h1>Pasang booth</h1>
+    <p>Masukkan <b>kode booth</b> 6 angka dari halaman Kelola acara (khusus admin).</p>
+    <div class="pin-view" id="pin-view" aria-live="polite"></div>
+    <div class="keypad" id="keypad"></div>
+    <div class="msg-b" id="pair-msg" role="alert"></div>
+  </div></div>
+</section>
+
+<!-- Idle: live wall / pratinjau kamera -->
+<section id="s-idle" class="layer hidden">
+  <div class="topbar-b">
+    <div><div class="name" id="ev-name"></div><div class="sub" id="ev-sub"></div></div>
+    <span class="pill" id="booth-name"></span>
+  </div>
+  <div class="wall hidden" id="wall"></div>
+  <div class="idle-cta">
+    <div class="idle-status" id="idle-status"></div>
+    <h1 id="idle-title">Abadikan momenmu di sini.</h1>
+    <p id="idle-text">Pilih filter, berpose, dan scan QR untuk menyimpan fotonya.</p>
+    <button class="big-btn" id="btn-start"><span class="dot" aria-hidden="true"></span>Sentuh untuk berfoto</button>
+  </div>
+  <div class="qr-card"><div class="qr" id="ev-qr"></div><p>Ikut memotret dari HP-mu</p></div>
+</section>
+
+<!-- Siap memotret -->
+<section id="s-ready" class="layer hidden">
+  <div class="guide hidden" id="guide"></div>
+  <div class="topbar-b">
+    <div><div class="name" id="ev-name2"></div><div class="sub">Pilih filter, tekan tombol bulat, lalu lihat ke kamera di atas layar ⬆</div></div>
+    <button class="pill" id="btn-back">Kembali</button>
+  </div>
+  <div class="ready-bottom">
+    <div class="filters-b" id="filters" role="group" aria-label="Pilih filter"></div>
+    <button class="shutter-b" id="btn-shoot" aria-label="Ambil foto (hitung mundur 3 detik)"></button>
+    <div class="hint-b">Hitung mundur 3 detik.<br>Layar akan berkedip terang.</div>
+  </div>
+</section>
+
+<div id="count" class="hidden"></div>
+<div id="flash"></div>
+<div class="processing hidden" id="processing">Mencetak foto…</div>
+
+<!-- Hasil -->
+<section id="s-result" class="hidden">
+  <div class="result">
+    <div class="photo"><img id="res-img" alt="Hasil foto"></div>
+    <div>
+      <h2>Keren! 📸</h2>
+      <p id="res-text">Scan QR ini dengan kamera HP untuk menyimpan fotomu.</p>
+      <div class="qr-big" id="res-qr"><div class="spinner"></div></div>
+      <div class="actions">
+        <button class="big-btn" id="btn-again"><span class="dot" aria-hidden="true"></span>Foto lagi</button>
+        <button class="pill" id="btn-done">Selesai</button>
+      </div>
+      <div class="back-in" id="back-in"></div>
+    </div>
+  </div>
+</section>
+
+<!-- Pesan (kamera bermasalah, dll.) -->
+<section id="s-note" class="layer hidden">
+  <div class="center-b"><div class="note-b"><h1 id="note-title"></h1><p id="note-text"></p><div id="note-actions"></div></div></div>
+</section>
+
+<script src="js/vendor/qrcode.js"></script>
+<script src="js/config.js?v=3"></script>
+<script src="js/common.js?v=3"></script>
+<script src="js/api.js?v=3"></script>
+<script src="js/filters.js?v=3"></script>
+<script src="js/queue.js?v=3"></script>
+<script src="js/render.js?v=3"></script>
+<script src="js/booth.js?v=3"></script>
+</body>
+</html>

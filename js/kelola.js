@@ -46,6 +46,7 @@
       $('#form-fields').innerHTML = eventFormHtml(ev);
       bindEventForm($('#edit-form'));
     }
+    renderBooth(ev.booth);
     thumbs = thumbs || ThumbLoader(ev.slug, () => null);
     loadPhotos();
     loadComments();
@@ -150,6 +151,26 @@
     const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, size, size); x.fillStyle = '#000';
     for (let r = 0; r < n; r++) for (let k = 0; k < n; k++) if (qr.isDark(r, k)) x.fillRect(pad + k * cell, pad + r * cell, cell, cell);
     const a = document.createElement('a'); a.href = c.toDataURL('image/png'); a.download = `qr-${ev.slug}.png`; a.click();
+  };
+
+  function renderBooth(b) {
+    const on = !!(b && b.pin);
+    $('#booth-off').classList.toggle('hidden', on);
+    $('#booth-on').classList.toggle('hidden', !on);
+    $('#booth-state').textContent = on ? 'Aktif' : 'Belum aktif';
+    if (!on) return;
+    $('#booth-pin').textContent = b.pin;
+    $('#booth-url').textContent = b.url.replace(/^https?:\/\//, '');
+    if (document.activeElement !== $('#booth-name-input')) $('#booth-name-input').value = b.name;
+  }
+  async function boothSetup(body, okMsg) {
+    try { const r = await api('boothSetup', { id, ...body }); renderBooth(r.booth); if (okMsg) toast(okMsg); }
+    catch (err) { toast(err.message); }
+  }
+  $('#btn-booth-on').onclick = () => boothSetup({}, 'Booth aktif. Masukkan kode di layar booth.');
+  $('#btn-booth-name').onclick = () => boothSetup({ name: $('#booth-name-input').value }, 'Nama booth disimpan');
+  $('#btn-booth-reset').onclick = () => {
+    if (confirm('Buat kode booth baru? Semua layar booth yang sudah terpasang harus dipasang ulang dengan kode baru.')) boothSetup({ reset: true }, 'Kode baru dibuat. Booth lama sudah dicabut.');
   };
 
   load();
