@@ -7,7 +7,7 @@
 <link rel="icon" href="icon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=1">
+<link rel="stylesheet" href="css/style.css?v=2">
 </head>
 <body>
 <header class="topbar">
@@ -15,23 +15,35 @@
   <a class="btn ghost small hidden" id="manage" href="./">Kelola</a>
 </header>
 <main class="wrap">
-  <h1 id="title">Memuat…</h1>
-  <p class="muted" id="sub"></p>
+  <h1 id="title">Album</h1>
+  <p class="muted" id="sub" aria-live="polite">Memuat album…</p>
+  <div class="album-tools" id="tools"></div>
   <div id="locked" class="panel hidden"></div>
   <div class="photo-grid" id="grid"></div>
-  <div class="load-more hidden" id="more-box"><button class="btn ghost" id="btn-more">Muat foto lainnya</button></div>
 </main>
 
 <dialog class="viewer" id="viewer" aria-label="Lihat foto">
   <div class="viewer-inner">
     <div class="viewer-bar"><span id="v-by" class="small"></span><button class="btn ghost small" id="v-close">Tutup</button></div>
     <div class="viewer-img"><img id="v-img" alt=""></div>
+    <div>
+      <div class="reacts" id="v-reacts" role="group" aria-label="Reaksi"></div>
+      <p class="v-note hidden" id="v-note"></p>
+    </div>
+    <div class="v-comments hidden" id="v-comments">
+      <div id="c-list"><p class="v-note">Memuat komentar…</p></div>
+      <form class="comment-form hidden" id="c-form" novalidate>
+        <input id="c-text" maxlength="200" placeholder="Tulis komentar…" aria-label="Tulis komentar" autocomplete="off">
+        <button class="btn small">Kirim</button>
+      </form>
+    </div>
     <div class="viewer-foot row spread">
       <div class="row">
         <button class="btn ghost small" id="v-prev" aria-label="Foto sebelumnya">‹</button>
         <button class="btn ghost small" id="v-next" aria-label="Foto berikutnya">›</button>
       </div>
       <div class="row">
+        <button class="btn ghost small hidden" id="v-ctoggle">Komentar</button>
         <button class="btn ghost small" id="v-report">Laporkan</button>
         <button class="btn small" id="v-dl">Unduh</button>
       </div>
@@ -39,9 +51,10 @@
   </div>
 </dialog>
 
-<script src="js/config.js?v=1"></script>
-<script src="js/common.js?v=1"></script>
-<script src="js/api.js?v=1"></script>
-<script src="js/album.js?v=1"></script>
+<script src="js/config.js?v=2"></script>
+<script src="js/common.js?v=2"></script>
+<script src="js/api.js?v=2"></script>
+<script src="js/thumbs.js?v=2"></script>
+<script src="js/album.js?v=2"></script>
 </body>
 </html>

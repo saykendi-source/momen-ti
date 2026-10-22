@@ -4,7 +4,7 @@
   if (!Auth.get()) { location.replace('./?next=' + encodeURIComponent(location.href)); return; }
 
   const id = qs('id');
-  let ev, cursor = 0;
+  let ev, thumbs = null;
 
   async function load() {
     let data;
@@ -36,38 +36,67 @@
 
     const s = ev.stats;
     $('#stats').innerHTML = `<b>${s.participants}</b> peserta bergabung · <b>${s.photos}</b> foto · jatah ${ev.maxPhotos} foto per orang`
-      + (s.reported ? ` · <span style="color:var(--danger)">${s.reported} foto dilaporkan</span>` : '');
+      + ` · <b>${s.comments}</b> komentar${ev.comments ? '' : ' (komentar nonaktif)'}`
+      + (s.reported ? ` · <span style="color:var(--danger)">${s.reported} foto dilaporkan</span>` : '')
+      + (s.reportedComments ? ` · <span style="color:var(--danger)">${s.reportedComments} komentar dilaporkan</span>` : '');
+    $('#c-status').textContent = ev.comments ? 'Komentar aktif' : 'Komentar nonaktif (ubah di Pengaturan acara)';
     $('#reveal-info').textContent = ev.reveal === 'jadwal' ? `Album dibuka ${fmtDate(ev.revealAt)}` : REVEAL_LABEL[ev.reveal];
 
     if (!$('#settings').open) {
       $('#form-fields').innerHTML = eventFormHtml(ev);
       bindEventForm($('#edit-form'));
     }
-    cursor = 0; $('#photos').innerHTML = '';
+    thumbs = thumbs || ThumbLoader(ev.slug, () => null);
     loadPhotos();
+    loadComments();
   }
 
   async function loadPhotos() {
-    $('#btn-more').disabled = true;
     let data;
-    try { data = await api('modList', { id, cursor }); }
-    catch (err) { toast(err.message); $('#btn-more').disabled = false; return; }
+    try { data = await api('modList', { id }); }
+    catch (err) { toast(err.message); return; }
     $('#no-photos').classList.toggle('hidden', data.total > 0);
-    $('#photos').insertAdjacentHTML('beforeend', data.photos.map((p) => `
+    $('#photos').innerHTML = data.photos.map((p) => `
       <figure class="${p.hidden ? 'is-hidden' : ''}" data-id="${p.id}">
-        <img src="${p.thumb}" alt="Foto oleh ${esc(p.by)}" loading="lazy">
+        <img alt="Foto oleh ${esc(p.by)}">
         ${p.reports ? `<span class="chip ditolak badge">${p.reports} laporan</span>` : p.hidden ? '<span class="chip badge">Disembunyikan</span>' : ''}
-        <span class="by">${esc(p.by)}${p.byType === 'tamu' ? ' (tamu)' : ''}</span>
+        <span class="by">${esc(p.by)}</span>
         <div class="tools">
           <button class="btn ghost small" data-act="${p.hidden ? 'show' : 'hide'}" style="color:#fff">${p.hidden ? 'Tampilkan' : 'Sembunyikan'}</button>
           <button class="btn danger small" data-act="del">Hapus</button>
         </div>
-      </figure>`).join(''));
-    cursor = data.next;
-    $('#more-box').classList.toggle('hidden', data.next === null);
-    $('#btn-more').disabled = false;
+      </figure>`).join('');
+    $$('#photos [data-id]').forEach((el) => thumbs.observe(el));
   }
-  $('#btn-more').onclick = loadPhotos;
+
+  async function loadComments() {
+    let data;
+    try { data = await api('modComments', { id }); }
+    catch (err) { $('#mod-comments').innerHTML = `<li class="muted">${esc(err.message)}</li>`; return; }
+    $('#no-comments').classList.toggle('hidden', data.comments.length > 0);
+    $('#mod-comments').innerHTML = data.comments.map((c) => `
+      <li class="${c.hidden ? 'is-hidden' : ''}" data-cid="${c.id}">
+        <div class="txt"><b>${esc(c.name)}</b> ${esc(c.text)}
+          <div class="small muted">${fmtDate(c.t)}${c.reports ? ` · <span style="color:var(--danger)">${c.reports} laporan</span>` : ''}${c.hidden ? ' · disembunyikan' : ''}</div></div>
+        <div class="row" style="flex-wrap:nowrap">
+          <button class="btn ghost small" data-cact="${c.hidden ? 'show' : 'hide'}">${c.hidden ? 'Tampilkan' : 'Sembunyikan'}</button>
+          <button class="btn danger small" data-cact="del">Hapus</button>
+        </div>
+      </li>`).join('');
+  }
+
+  $('#mod-comments').addEventListener('click', async (e) => {
+    const b = e.target.closest('[data-cact]'); if (!b) return;
+    const cid = b.closest('[data-cid]').dataset.cid, act = b.dataset.cact;
+    if (act === 'del' && !confirm('Hapus komentar ini?')) return;
+    b.disabled = true;
+    try {
+      if (act === 'del') await api('deleteComment', { commentId: cid });
+      else await api('setCommentHidden', { commentId: cid, hidden: act === 'hide' });
+      toast(act === 'del' ? 'Komentar dihapus' : act === 'hide' ? 'Komentar disembunyikan' : 'Komentar ditampilkan');
+      loadComments();
+    } catch (err) { toast(err.message); b.disabled = false; }
+  });
 
   $('#photos').addEventListener('click', async (e) => {
     const btn = e.target.closest('[data-act]'); if (!btn) return;

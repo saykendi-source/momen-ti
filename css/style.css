@@ -146,3 +146,32 @@ dialog.viewer::backdrop { background: #000; }
 .setup-warn { border: 1.5px dashed var(--danger); }
 .qr-img { background: #fff; border-radius: var(--radius-s); padding: 6px; width: 180px; aspect-ratio: 1; }
 .qr-img svg { width: 100%; height: 100%; display: block; }
+
+/* ===== Versi 2: album bertahap, reaksi, komentar ===== */
+.photo-grid > [data-id] { background: linear-gradient(110deg, var(--line) 30%, color-mix(in srgb, var(--line) 55%, var(--surface)) 50%, var(--line) 70%); background-size: 200% 100%; animation: shimmer 1.4s linear infinite; }
+.photo-grid > [data-id].loaded { animation: none; background: var(--line); }
+.photo-grid > [data-id] img:not([src]) { visibility: hidden; }
+@keyframes shimmer { to { background-position: -200% 0; } }
+.photo-grid .counts { position: absolute; right: 6px; bottom: 6px; display: flex; gap: 4px; }
+.photo-grid .counts span { background: rgba(0,0,0,.6); color: #fff; font-size: .72rem; font-weight: 700; padding: .05rem .4rem; border-radius: 999px; }
+.album-tools { display: flex; flex-wrap: wrap; gap: .5rem; margin: 0 0 1rem; }
+
+.viewer-inner { grid-template-rows: auto minmax(0, 1fr) auto auto auto; }
+.reacts { display: flex; gap: .4rem; flex-wrap: wrap; justify-content: center; padding: .5rem 1rem 0; }
+.reacts button { font: inherit; font-size: .95rem; background: #1B1F27; color: #fff; border: 1.5px solid #333B49; border-radius: 999px; padding: .2rem .65rem; cursor: pointer; min-height: 36px; }
+.reacts button[aria-pressed="true"] { border-color: #F2A93B; background: #2C2415; }
+.reacts button:disabled { cursor: default; opacity: .8; }
+.reacts b { font-size: .8rem; margin-left: .2rem; font-variant-numeric: tabular-nums; }
+.v-comments { max-height: 38dvh; overflow-y: auto; padding: .25rem 1rem .5rem; border-top: 1px solid #22262E; margin-top: .5rem; }
+.comment { padding: .5rem 0; border-bottom: 1px solid #1C2027; font-size: .93rem; overflow-wrap: anywhere; }
+.comment .meta { color: #8B95A6; font-size: .76rem; display: flex; gap: .6rem; flex-wrap: wrap; align-items: center; margin-top: .15rem; }
+.comment .meta button { all: unset; cursor: pointer; text-decoration: underline; }
+.comment.is-hidden { opacity: .5; }
+.comment-form { display: flex; gap: .5rem; padding: .5rem 0 .25rem; }
+.comment-form input { background: #171B23; border-color: #333B49; color: #F1F3F6; }
+.v-note { text-align: center; color: #8B95A6; font-size: .8rem; padding: .3rem 1rem 0; }
+
+.mod-comments { list-style: none; margin: 0; padding: 0; }
+.mod-comments li { display: grid; grid-template-columns: 1fr auto; gap: .75rem; align-items: center; padding: .6rem 0; border-bottom: 1px solid var(--line); }
+.mod-comments li.is-hidden .txt { opacity: .5; }
+.mod-comments .txt { overflow-wrap: anywhere; }

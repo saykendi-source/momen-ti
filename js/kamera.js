@@ -20,7 +20,7 @@ function infoScreen(title, text, actions = '') {
 async function init() {
   if (!configured()) return infoScreen('Belum dikonfigurasi', 'Admin perlu mengisi js/config.js terlebih dahulu.');
   if (!slug) return infoScreen('Link tidak lengkap', 'Scan ulang QR acara dari panitia.');
-  try { info = await api('getEvent', { slug, pt: PT.get(slug) }); }
+  try { info = await api('getEvent', { slug, pt: PT.get(slug) }, { onSlow: (m) => { $('#info-text').textContent = m; } }); }
   catch (err) {
     return infoScreen(err.code === 'not_found' ? 'Acara tidak ditemukan' : 'Gagal memuat acara', err.message,
       err.retry ? '<button class="btn block" onclick="location.reload()">Coba lagi</button>' : '');
@@ -206,12 +206,12 @@ async function renderPhoto(v, takenAt) {
 
 async function makeThumb(full) {
   const src = full.canvas;
-  const k = Math.min(1, 480 / Math.max(src.width, src.height));
+  const k = Math.min(1, 360 / Math.max(src.width, src.height)); // kecil agar muat di cache server (±100 KB)
   const c = document.createElement('canvas');
   c.width = Math.round(src.width * k); c.height = Math.round(src.height * k);
   const x = c.getContext('2d'); x.imageSmoothingQuality = 'high';
   x.drawImage(src, 0, 0, c.width, c.height);
-  return c.toDataURL('image/jpeg', 0.74);
+  return c.toDataURL('image/jpeg', 0.7);
 }
 
 /* ---------- Kirim antrean (coba ulang otomatis) ---------- */

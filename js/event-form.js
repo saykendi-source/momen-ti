@@ -35,6 +35,10 @@ function eventFormHtml(e = {}) {
       <div><label for="f-frame">Bingkai foto</label>
         <select id="f-frame" name="frame">${opt('polaroid', frame, 'Polaroid dengan nama acara')}${opt('polos', frame, 'Polos, tanpa bingkai')}</select></div>
     </div>
+    <div class="field">
+      <label class="check"><input type="checkbox" name="comments" ${e.comments ? 'checked' : ''}> Izinkan peserta berkomentar di album</label>
+      <span class="hint">Komentar disaring dari kata kasar, bisa dilaporkan peserta, dan bisa disembunyikan admin. Reaksi emoji selalu aktif.</span>
+    </div>
 `;
 }
 
@@ -57,5 +61,6 @@ function readEventForm(form) {
     code: v('code').trim(),
     filter: v('filter'),
     frame: v('frame'),
+    comments: form.querySelector('[name=comments]').checked,
   };
 }

@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&display=swap" rel="stylesheet">
 <title>Kelola acara · Momen TI</title>
-<link rel="stylesheet" href="css/style.css?v=1">
+<link rel="stylesheet" href="css/style.css?v=2">
 </head>
 <body>
 <header class="topbar">
@@ -67,16 +67,23 @@
       <p class="muted small" style="margin:.5rem 0 1rem">Sembunyikan foto agar tidak tampil di album, atau hapus (file di Drive dipindah ke sampah). Foto otomatis disembunyikan setelah 3 laporan.</p>
       <div class="photo-grid" id="photos"></div>
       <p class="muted hidden" id="no-photos">Belum ada foto.</p>
-      <div class="load-more hidden" id="more-box"><button class="btn ghost small" id="btn-more">Muat foto lainnya</button></div>
+    </section>
+
+    <section class="panel">
+      <div class="row spread"><h2 style="margin:0">Komentar</h2><span class="muted small" id="c-status"></span></div>
+      <p class="muted small" style="margin:.5rem 0 .5rem">Komentar yang dilaporkan tampil paling atas. Komentar otomatis disembunyikan setelah 3 laporan.</p>
+      <ul class="mod-comments" id="mod-comments"></ul>
+      <p class="muted hidden" id="no-comments" style="margin:0">Belum ada komentar.</p>
     </section>
   </div>
 </main>
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
-<script src="js/config.js?v=1"></script>
-<script src="js/common.js?v=1"></script>
-<script src="js/api.js?v=1"></script>
-<script src="js/filters.js?v=1"></script>
-<script src="js/event-form.js?v=1"></script>
-<script src="js/kelola.js?v=1"></script>
+<script src="js/config.js?v=2"></script>
+<script src="js/common.js?v=2"></script>
+<script src="js/api.js?v=2"></script>
+<script src="js/filters.js?v=2"></script>
+<script src="js/event-form.js?v=2"></script>
+<script src="js/thumbs.js?v=2"></script>
+<script src="js/kelola.js?v=2"></script>
 </body>
 </html>

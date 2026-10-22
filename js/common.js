@@ -26,3 +26,7 @@ function setupWarning() {
   return `<div class="panel setup-warn"><h2>Aplikasi belum dikonfigurasi</h2>
     <p class="muted" style="margin:0">Isi <b>API_URL</b> di file <code>js/config.js</code> dengan URL deployment Apps Script (README, Tahap 6).</p></div>`;
 }
+
+// Safari iPhone sering memulihkan halaman dari keadaan "beku" (back-forward cache) dengan permintaan
+// yang sudah terputus, sehingga layar tertahan di "Memuat…". Muat ulang halaman agar data diambil lagi.
+window.addEventListener('pageshow', (e) => { if (e.persisted) location.reload(); });

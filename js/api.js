@@ -34,19 +34,45 @@ const PT = {
   clear: (slug) => store.del('momen.pt.' + slug),
 };
 
-async function api(action, payload = {}) {
-  let res;
+// Aksi yang aman diulang otomatis (hanya membaca data).
+const SAFE_RETRY = ['me', 'getEvent', 'album', 'thumbs', 'photo', 'comments', 'listEvents', 'getManage', 'modList', 'modComments'];
+
+// Jelaskan balasan yang bukan JSON (biasanya halaman error dari Google).
+function explainBadResponse(status, text) {
+  const t = String(text || '');
+  const title = (t.match(/<title>([^<]*)<\/title>/i) || [])[1] || '';
+  if (/authoriz/i.test(t)) return 'Apps Script perlu izin ulang. Admin: jalankan fungsi setup di editor, lalu Deploy → Manage deployments → New version.';
+  if (/not found|tidak ditemukan|404/i.test(title) || status === 404) return 'Alamat API tidak ditemukan. Admin: periksa API_URL di js/config.js.';
+  if (/too many|terlalu banyak|quota|kuota/i.test(t)) return 'Server Google sedang membatasi permintaan (kuota). Coba lagi beberapa saat lagi.';
+  if (/sign in|login|masuk/i.test(title)) return 'API meminta login Google. Admin: pastikan deployment memakai akses "Anyone".';
+  const detail = (title || t.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()).slice(0, 120);
+  return 'Server mengirim balasan yang tidak dikenal' + (detail ? ` (“${detail}”)` : '') + '. Coba lagi.';
+}
+
+async function apiOnce(action, payload, timeoutMs) {
+  const ctrl = 'AbortController' in window ? new AbortController() : null;
+  const timer = ctrl && setTimeout(() => ctrl.abort(), timeoutMs);
+  let res, text;
   try {
     // Dikirim sebagai text/plain agar tidak memicu preflight CORS, dan balasan JSON tetap bisa dibaca.
-    res = await fetch(MOMEN.API_URL, { method: 'POST', body: JSON.stringify({ action, auth: Auth.get(), ...payload }) });
-  } catch {
-    const e = new Error('Tidak bisa terhubung ke server. Periksa koneksi internet.');
-    e.retry = true; e.code = 'network'; throw e;
+    res = await fetch(MOMEN.API_URL, {
+      method: 'POST', signal: ctrl?.signal,
+      body: JSON.stringify({ action, auth: Auth.get(), ...payload }),
+    });
+    text = await res.text();
+  } catch (err) {
+    const timedOut = err && err.name === 'AbortError';
+    const e = new Error(timedOut ? 'Server lambat menjawab. Mencoba lagi…' : 'Tidak bisa terhubung ke server. Periksa koneksi internet.');
+    e.retry = true; e.code = timedOut ? 'timeout' : 'network'; throw e;
+  } finally {
+    if (timer) clearTimeout(timer);
   }
   let data;
-  try { data = await res.json(); } catch {
-    const e = new Error('Server tidak memberi jawaban yang benar. Coba lagi.');
-    e.retry = true; e.code = 'bad_response'; throw e;
+  try { data = JSON.parse(text); } catch {
+    const e = new Error(explainBadResponse(res.status, text));
+    e.retry = true; e.code = 'bad_response'; e.raw = String(text || '').slice(0, 500);
+    console.warn('Balasan bukan JSON dari API:', res.status, e.raw);
+    throw e;
   }
   if (!data.ok) {
     const e = new Error(data.error || 'Permintaan gagal.');
@@ -55,4 +81,29 @@ async function api(action, payload = {}) {
     throw e;
   }
   return data;
+}
+
+/**
+ * Panggil API. Aksi baca diulang otomatis (maks 2x) bila server lambat/sibuk.
+ * opts.onSlow(msg): dipanggil bila belum ada jawaban setelah 4 detik (untuk pesan "server sedang bangun").
+ */
+async function api(action, payload = {}, opts = {}) {
+  const heavy = action === 'upload' || action === 'photo';
+  const timeoutMs = opts.timeout || (heavy ? 90000 : 30000);
+  const tries = opts.tries ?? (SAFE_RETRY.includes(action) || action === 'join' ? 3 : 1);
+  const slowTimer = opts.onSlow && setTimeout(() => opts.onSlow('Server sedang bangun, tunggu sebentar…'), 4000);
+  try {
+    for (let i = 1; ; i++) {
+      try { return await apiOnce(action, payload, timeoutMs); }
+      catch (e) {
+        // join hanya diulang bila balasan rusak/timeout (bukan karena ditolak server)
+        const again = e.retry && i < tries && (action !== 'join' || ['bad_response', 'timeout', 'network', 'server'].includes(e.code));
+        if (!again) throw e;
+        opts.onSlow?.('Server lambat, mencoba lagi…');
+        await new Promise((r) => setTimeout(r, 1500 * i));
+      }
+    }
+  } finally {
+    if (slowTimer) clearTimeout(slowTimer);
+  }
 }
