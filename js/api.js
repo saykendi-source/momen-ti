@@ -76,7 +76,7 @@ async function apiOnce(action, payload, timeoutMs) {
   }
   if (!data.ok) {
     const e = new Error(data.error || 'Permintaan gagal.');
-    e.code = data.code; e.retry = !!data.retry;
+    e.code = data.code; e.retry = !!data.retry; e.resetAt = data.resetAt || null;
     if (data.code === 'need_login') Auth.logout();
     throw e;
   }

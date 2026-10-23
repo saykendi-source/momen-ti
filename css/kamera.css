@@ -49,3 +49,15 @@ body.cam .msg { background: rgba(224,103,92,.15); color: #F09A91; }
 .shutter:disabled { background: #4A505B; cursor: not-allowed; }
 .side-btn { justify-self: end; width: 48px; height: 48px; border-radius: 50%; border: 1.5px solid #2A313D; background: #171B23; color: #F1F3F6; cursor: pointer; display: grid; place-items: center; }
 .queue-note { text-align: center; font-size: .8rem; color: #F2A93B; min-height: 1.2em; padding: 0 1rem; }
+
+/* Jatah foto */
+.quota-note { text-align: center; font-size: .85rem; color: #F2A93B; padding: 0 1rem .7rem; }
+.quota-note b { font-variant-numeric: tabular-nums; }
+.roll-banner { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(10,12,16,.72); z-index: 20; animation: fadein .25s ease-out; }
+.roll-banner > div { text-align: center; display: grid; gap: .35rem; }
+.roll-banner .can { font-size: 4.5rem; animation: spinin .9s cubic-bezier(.2,.8,.2,1.2) both; }
+.roll-banner b { font-size: 1.9rem; font-weight: 800; }
+.roll-banner small { color: #C9CFD9; font-size: 1rem; }
+@keyframes spinin { from { transform: rotate(-200deg) scale(.3); opacity: 0; } }
+@keyframes fadein { from { opacity: 0; } }
+#s-cam { position: fixed; }

@@ -5,6 +5,7 @@ function eventFormHtml(e = {}) {
   const reveal = e.reveal || 'setelah';
   const filter = e.filter || 'portra';
   const frame = e.frame || 'polaroid';
+  const quota = e.quotaMode || 'total';
   const opt = (v, cur, label) => `<option value="${v}" ${v === cur ? 'selected' : ''}>${label}</option>`;
   return `
     <div class="field">
@@ -26,7 +27,14 @@ function eventFormHtml(e = {}) {
         <input id="f-reveal-at" name="revealAt" type="datetime-local" value="${toLocalInput(e.revealAt)}"></div>
     </div>
     <div class="grid2">
-      <div><label for="f-max">Jatah foto per orang</label><input id="f-max" name="maxPhotos" type="number" min="1" max="100" value="${e.maxPhotos || 15}"></div>
+      <div><label for="f-quota">Jenis jatah foto</label>
+        <select id="f-quota" name="quotaMode">
+          ${opt('total', quota, 'Total selama acara')}${opt('harian', quota, 'Per hari (terisi lagi tiap 00.00)')}${opt('rol', quota, 'Rol film baru tiap beberapa jam')}${opt('bebas', quota, 'Tanpa batas')}
+        </select></div>
+      <div class="q-max ${quota === 'bebas' ? 'hidden' : ''}"><label for="f-max" id="f-max-label">${maxLabel(quota)}</label><input id="f-max" name="maxPhotos" type="number" min="1" max="100" value="${e.maxPhotos || 15}"></div>
+    </div>
+    <div class="grid2">
+      <div class="q-roll ${quota === 'rol' ? '' : 'hidden'}"><label for="f-roll">Rol baru setiap <span class="hint">Jam, dihitung dari jam mulai acara</span></label><input id="f-roll" name="rollHours" type="number" min="1" max="24" value="${e.rollHours || 3}"></div>
       <div><label for="f-code">Kode akses <span class="hint">Kosongkan jika tidak perlu</span></label><input id="f-code" name="code" maxlength="12" value="${esc(e.code || '')}" autocapitalize="characters"></div>
     </div>
     <div class="grid2">
@@ -42,9 +50,28 @@ function eventFormHtml(e = {}) {
 `;
 }
 
+function maxLabel(mode) {
+  return mode === 'harian' ? 'Jatah foto per orang per hari' : mode === 'rol' ? 'Isi satu rol (foto per orang)' : 'Jatah foto per orang';
+}
+
 function bindEventForm(form) {
   const sel = form.querySelector('[name=reveal]');
   sel.addEventListener('change', () => form.querySelector('.reveal-at').classList.toggle('hidden', sel.value !== 'jadwal'));
+  const q = form.querySelector('[name=quotaMode]');
+  q.addEventListener('change', () => {
+    form.querySelector('.q-max').classList.toggle('hidden', q.value === 'bebas');
+    form.querySelector('.q-roll').classList.toggle('hidden', q.value !== 'rol');
+    form.querySelector('#f-max-label').textContent = maxLabel(q.value);
+  });
+}
+
+// Kalimat ringkas tentang jatah, untuk halaman Kelola.
+function quotaText(e) {
+  const m = e.quotaMode || 'total';
+  if (m === 'bebas') return 'jatah foto tanpa batas';
+  if (m === 'harian') return `jatah ${e.maxPhotos} foto per orang per hari`;
+  if (m === 'rol') return `rol ${e.maxPhotos} foto per orang, rol baru tiap ${e.rollHours} jam`;
+  return `jatah ${e.maxPhotos} foto per orang`;
 }
 
 function readEventForm(form) {
@@ -58,6 +85,8 @@ function readEventForm(form) {
     reveal: v('reveal'),
     revealAt: v('reveal') === 'jadwal' ? iso(v('revealAt')) : '',
     maxPhotos: Number(v('maxPhotos')),
+    quotaMode: v('quotaMode'),
+    rollHours: Number(v('rollHours')) || 3,
     code: v('code').trim(),
     filter: v('filter'),
     frame: v('frame'),

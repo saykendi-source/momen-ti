@@ -9,8 +9,8 @@
 <meta name="theme-color" content="#0A0C10">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Caveat:wght@600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=3">
-<link rel="stylesheet" href="css/kamera.css?v=3">
+<link rel="stylesheet" href="css/style.css?v=4">
+<link rel="stylesheet" href="css/kamera.css?v=4">
 </head>
 <body class="cam">
 
@@ -54,21 +54,23 @@
   </div>
   <div class="filters" id="filters" role="group" aria-label="Pilih filter"></div>
   <div class="cam-controls">
-    <div class="counter" aria-live="polite"><b id="shots">0</b><span>sisa foto</span></div>
+    <div class="counter" aria-live="polite"><b id="shots">0</b><span id="shots-label">sisa foto</span></div>
     <button class="shutter" id="shutter" aria-label="Ambil foto"></button>
     <button class="side-btn" id="flip" aria-label="Ganti kamera depan/belakang">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 7h-3l-2-3H9L7 7H4a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1V8a1 1 0 0 0-1-1Z"/><path d="M9 13a3 3 0 0 1 5.2-2"/><path d="M15 13a3 3 0 0 1-5.2 2"/></svg>
     </button>
   </div>
   <div class="queue-note" id="queue-note" aria-live="polite"></div>
+  <div class="quota-note hidden" id="quota-note" aria-live="polite"></div>
+  <div class="roll-banner hidden" id="roll-banner"><div><span class="can" aria-hidden="true">🎞️</span><b id="roll-title">Rol baru!</b><small id="roll-text"></small></div></div>
 </section>
 
 <canvas id="canvas" hidden></canvas>
-<script src="js/config.js?v=3"></script>
-<script src="js/common.js?v=3"></script>
-<script src="js/api.js?v=3"></script>
-<script src="js/filters.js?v=3"></script>
-<script src="js/queue.js?v=3"></script>
-<script src="js/kamera.js?v=3"></script>
+<script src="js/config.js?v=4"></script>
+<script src="js/common.js?v=4"></script>
+<script src="js/api.js?v=4"></script>
+<script src="js/filters.js?v=4"></script>
+<script src="js/queue.js?v=4"></script>
+<script src="js/kamera.js?v=4"></script>
 </body>
 </html>

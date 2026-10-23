@@ -35,7 +35,7 @@
     } catch { $('#qr').textContent = 'QR gagal dibuat'; }
 
     const s = ev.stats;
-    $('#stats').innerHTML = `<b>${s.participants}</b> peserta bergabung · <b>${s.photos}</b> foto · jatah ${ev.maxPhotos} foto per orang`
+    $('#stats').innerHTML = `<b>${s.participants}</b> peserta bergabung · <b>${s.photos}</b> foto · ${quotaText(ev)}`
       + ` · <b>${s.comments}</b> komentar${ev.comments ? '' : ' (komentar nonaktif)'}`
       + (s.reported ? ` · <span style="color:var(--danger)">${s.reported} foto dilaporkan</span>` : '')
       + (s.reportedComments ? ` · <span style="color:var(--danger)">${s.reportedComments} komentar dilaporkan</span>` : '');

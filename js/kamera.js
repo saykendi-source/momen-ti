@@ -3,7 +3,8 @@ let info = null;          // data acara dari server
 let currentFilter = 'asli';
 let facing = 'environment';
 let stream = null;
-let shotsLeft = 0;
+let quota = { mode: 'total', left: 0, max: 0, resetAt: null }; // jatah dari server
+let quotaTimer = 0;
 let sending = false;
 let pendingCount = 0;
 
@@ -46,7 +47,7 @@ async function init() {
     return infoScreen(e.name, t, (state.revealed ? albumBtn : '') + manageLink);
   }
 
-  shotsLeft = info.shotsLeft;
+  quota = info.quota || { mode: 'total', left: info.shotsLeft, max: info.event.maxPhotos, resetAt: null };
   currentFilter = e.filter in FILTERS ? e.filter : 'asli';
   $('#album-link').href = `album.html?e=${encodeURIComponent(slug)}`;
   $('#album-link').classList.toggle('hidden', !(state.revealed || info.canManage));
@@ -58,6 +59,8 @@ async function init() {
   await refreshPending();
   updateCounter();
   sendQueue();
+  clearInterval(quotaTimer);
+  quotaTimer = setInterval(checkQuota, 30000);
   const msLeft = new Date(e.end) - Date.now();
   if (msLeft > 0 && msLeft < 2 ** 31) setTimeout(() => init(), msLeft + 1500);
 }
@@ -120,7 +123,7 @@ function stopCamera() { stream?.getTracks().forEach((t) => t.stop()); stream = n
 $('#flip').onclick = () => { facing = facing === 'user' ? 'environment' : 'user'; startCamera(); };
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) stopCamera();
-  else if (!$('#s-cam').classList.contains('hidden')) { startCamera(); sendQueue(); }
+  else if (!$('#s-cam').classList.contains('hidden')) { startCamera(); sendQueue(); checkQuota(true); }
 });
 window.addEventListener('online', () => sendQueue());
 
@@ -137,17 +140,65 @@ $('#filters').addEventListener('click', (e) => {
   $('#video').style.filter = FILTERS[currentFilter].css;
 });
 
+const unlimited = () => quota.mode === 'bebas';
+const leftNow = () => (unlimited() ? Infinity : Math.max(0, quota.left - pendingCount));
+
 function updateCounter() {
-  const left = Math.max(0, shotsLeft - pendingCount);
-  $('#shots').textContent = left;
+  const left = leftNow();
+  $('#shots').textContent = unlimited() ? '∞' : left;
+  $('#shots-label').textContent = unlimited() ? 'tanpa batas' : quota.mode === 'harian' ? 'sisa hari ini' : quota.mode === 'rol' ? 'sisa di rol' : 'sisa foto';
   $('#shutter').disabled = left <= 0;
   $('#shutter').setAttribute('aria-label', left <= 0 ? 'Jatah foto habis' : 'Ambil foto');
+  updateQuotaNote();
 }
+
+function untilText(iso) {
+  const ms = new Date(iso) - Date.now();
+  if (ms <= 0) return 'sebentar lagi';
+  const h = Math.floor(ms / 3600000), m = Math.ceil((ms % 3600000) / 60000);
+  return h ? `${h} jam ${m} menit lagi` : `${m} menit lagi`;
+}
+function updateQuotaNote() {
+  const el = $('#quota-note');
+  if (unlimited() || leftNow() > 0 || pendingCount > 0) { el.classList.add('hidden'); return; }
+  let t;
+  if (quota.mode === 'harian') t = quota.resetAt ? `Jatah hari ini habis. Jatah baru besok pukul 00.00 (<b>${untilText(quota.resetAt)}</b>).` : 'Jatah hari ini habis, dan ini hari terakhir acara.';
+  else if (quota.mode === 'rol') t = quota.resetAt ? `Rol film habis. Rol baru dalam <b>${untilText(quota.resetAt)}</b>.` : 'Rol film habis, dan ini rol terakhir acara.';
+  else t = 'Jatah foto habis. Minta admin menambah jatah, atau berfoto di booth jika tersedia.';
+  el.innerHTML = t;
+  el.classList.remove('hidden');
+}
+
+// Periksa jatah ke server: saat jatah habis (mungkin admin menambah), atau saat rol/hari baru tiba.
+async function checkQuota(force) {
+  if (document.hidden || $('#s-cam').classList.contains('hidden')) return;
+  const due = quota.resetAt && Date.now() >= new Date(quota.resetAt);
+  if (!force && !due && (unlimited() || leftNow() > 0)) { updateQuotaNote(); return; }
+  try {
+    const r = await api('getEvent', { slug, pt: PT.get(slug) });
+    if (!r.quota) return;
+    const before = leftNow();
+    quota = r.quota;
+    if (before <= 0 && leftNow() > 0) celebrate();
+    updateCounter();
+  } catch {}
+}
+
+function celebrate() {
+  const title = quota.mode === 'rol' ? 'Rol baru!' : quota.mode === 'harian' ? 'Jatah baru hari ini!' : 'Jatah foto ditambah!';
+  $('#roll-title').textContent = title;
+  $('#roll-text').textContent = `${leftNow()} foto siap dipakai`;
+  const b = $('#roll-banner');
+  b.classList.remove('hidden');
+  navigator.vibrate?.([40, 60, 40]);
+  setTimeout(() => b.classList.add('hidden'), 2200);
+}
+$('#roll-banner').addEventListener('click', () => $('#roll-banner').classList.add('hidden'));
 
 /* ---------- Ambil foto ---------- */
 $('#shutter').addEventListener('click', async () => {
   const v = $('#video');
-  if (!stream || !v.videoWidth || shotsLeft - pendingCount <= 0) return;
+  if (!stream || !v.videoWidth || leftNow() <= 0) return;
   $('#shutter').disabled = true;
   const fl = $('#flash'); fl.classList.remove('go'); void fl.offsetWidth; fl.classList.add('go');
   navigator.vibrate?.(30);
@@ -230,7 +281,7 @@ async function sendQueue() {
       try {
         const r = await api('upload', { slug, pt: PT.get(slug), image: it.image, thumb: it.thumb, filter: it.filter, takenAt: it.takenAt });
         await Queue.remove(it.id);
-        shotsLeft = r.shotsLeft;
+        if (r.quota) quota = r.quota; else quota.left = r.shotsLeft;
         delay = 4000;
         toast('Foto tersimpan di album');
       } catch (err) {
@@ -243,7 +294,7 @@ async function sendQueue() {
         // Ditolak server (jatah habis, acara selesai, dll.): tidak dicoba ulang.
         await Queue.remove(it.id);
         toast(err.message, 4000);
-        if (err.code === 'quota') shotsLeft = 0;
+        if (err.code === 'quota') { quota.left = 0; if (err.resetAt) quota.resetAt = err.resetAt; }
         if (err.code === 'need_join') { PT.clear(slug); }
       }
     }
