@@ -18,60 +18,122 @@ function infoScreen(title, text, actions = '') {
   show('s-info');
 }
 
-async function init() {
-  if (!configured()) return infoScreen('Belum dikonfigurasi', 'Admin perlu mengisi js/config.js terlebih dahulu.');
-  if (!slug) return infoScreen('Link tidak lengkap', 'Scan ulang QR acara dari panitia.');
-  try { info = await api('getEvent', { slug, pt: PT.get(slug) }, { onSlow: (m) => { $('#info-text').textContent = m; } }); }
-  catch (err) {
-    return infoScreen(err.code === 'not_found' ? 'Acara tidak ditemukan' : 'Gagal memuat acara', err.message,
-      err.retry ? '<button class="btn block" onclick="location.reload()">Coba lagi</button>' : '');
-  }
+/* ---------- Pembukaan halaman: tampilkan dulu dari data tersimpan, perbarui di belakang layar ---------- */
+const CACHE_KEY = 'momen.ev.' + slug;
+function readCache() { try { return JSON.parse(store.get(CACHE_KEY) || 'null'); } catch { return null; } }
+function writeCache(d) { store.set(CACHE_KEY, JSON.stringify(d)); }
 
-  const { event: e, state, joined } = info;
+// Hitung ulang status acara dari jam HP (dipakai saat menampilkan dari data tersimpan).
+function localState(e, active) {
+  const now = Date.now(), s = Date.parse(e.start), en = Date.parse(e.end);
+  const phase = now < s ? 'belum' : now < en ? 'berlangsung' : 'selesai';
+  let rev = false;
+  if (e.reveal === 'langsung') rev = now >= s;
+  else if (e.reveal === 'setelah') rev = now >= en;
+  else if (e.reveal === 'jadwal') rev = !!e.revealAt && now >= Date.parse(e.revealAt);
+  return { active, phase, cameraOpen: active && phase === 'berlangsung', revealed: active && rev };
+}
+
+let shown = '';         // layar yang sedang tampil: join | arsip | belum | selesai | cam
+let camReady = false;   // timer & antrean kamera sudah disiapkan
+let endTimer = 0;
+
+function screenOf(d) {
+  if (!d.joined) return d.event.status !== 'aktif' ? 'arsip' : 'join';
+  if (!d.state.active) return 'arsip';
+  return d.state.phase === 'berlangsung' ? 'cam' : d.state.phase;
+}
+
+function render(d) {
+  info = d;
+  const e = d.event, state = d.state;
   document.title = e.name;
   $$('.ev-name').forEach((el) => (el.textContent = e.name));
-  const manageLink = info.canManage ? '<a class="btn ghost block" href="./">Kelola acara</a>' : '';
+  const manageLink = d.canManage ? '<a class="btn ghost block" href="./">Kelola acara</a>' : '';
   const albumBtn = `<a class="btn block" href="album.html?e=${encodeURIComponent(slug)}">Lihat album</a>`;
-
-  if (!joined) {
-    if (e.status !== 'aktif') return infoScreen(e.name, 'Acara ini sudah diarsipkan.', manageLink);
-    return showJoin();
-  }
-
-  if (!state.active) return infoScreen(e.name, 'Acara ini sudah diarsipkan.', manageLink);
-  if (state.phase === 'belum') return infoScreen(e.name, `Kamera dibuka ${fmtDate(e.start)}. Simpan link ini dan buka lagi saat acara dimulai.`, manageLink);
-  if (state.phase === 'selesai') {
+  const scr = screenOf(d);
+  shown = scr;
+  if (scr === 'join') { showJoin(); return; }
+  if (scr === 'arsip') { infoScreen(e.name, 'Acara ini sudah diarsipkan.', manageLink); return; }
+  if (scr === 'belum') { infoScreen(e.name, `Kamera dibuka ${fmtDate(e.start)}. Simpan link ini dan buka lagi saat acara dimulai.`, manageLink); return; }
+  if (scr === 'selesai') {
     sendQueue(); // kirim sisa foto yang tertunda
     const t = state.revealed ? 'Acara sudah selesai. Semua foto sudah bisa dilihat.'
       : `Acara sudah selesai. Album dibuka ${e.revealAt ? fmtDate(e.revealAt) : 'sebentar lagi'}.`;
-    return infoScreen(e.name, t, (state.revealed ? albumBtn : '') + '<button class="btn ghost block" data-fb>💬 Beri masukan</button>' + manageLink);
+    infoScreen(e.name, t, (state.revealed ? albumBtn : '') + '<button class="btn ghost block" data-fb>💬 Beri masukan</button>' + manageLink);
+    return;
   }
-
-  quota = info.quota || { mode: 'total', left: info.shotsLeft, max: info.event.maxPhotos, resetAt: null };
+  // Kamera
+  quota = d.quota || { mode: 'total', left: d.shotsLeft, max: e.maxPhotos, resetAt: null };
   currentFilter = e.filter in FILTERS ? e.filter : 'asli';
   $('#album-link').href = `album.html?e=${encodeURIComponent(slug)}`;
-  $('#album-link').classList.toggle('hidden', !(state.revealed || info.canManage));
+  $('#album-link').classList.toggle('hidden', !(state.revealed || d.canManage));
   $('#vf').classList.toggle('square', e.frame === 'polaroid');
   renderFilters();
   show('s-cam');
   startCamera();
   document.fonts?.load('600 40px Caveat').catch(() => {});
-  await refreshPending();
   updateCounter();
-  sendQueue();
-  clearInterval(quotaTimer);
-  quotaTimer = setInterval(checkQuota, 30000);
+  if (!camReady) {
+    camReady = true;
+    refreshPending().then(() => { updateCounter(); sendQueue(); });
+    clearInterval(quotaTimer);
+    quotaTimer = setInterval(checkQuota, 30000);
+  }
+  clearTimeout(endTimer);
   const msLeft = new Date(e.end) - Date.now();
-  if (msLeft > 0 && msLeft < 2 ** 31) setTimeout(() => init(), msLeft + 1500);
+  if (msLeft > 0 && msLeft < 2 ** 31) endTimer = setTimeout(() => init(), msLeft + 1500);
+}
+
+async function init() {
+  if (!configured()) return infoScreen('Belum dikonfigurasi', 'Admin perlu mengisi js/config.js terlebih dahulu.');
+  if (!slug) return infoScreen('Link tidak lengkap', 'Scan ulang QR acara dari panitia.');
+
+  // 1) Tampilkan seketika dari data tersimpan (jika pernah membuka acara ini di HP ini).
+  const cached = readCache();
+  if (cached && cached.event) {
+    cached.state = localState(cached.event, cached.event.status === 'aktif');
+    render(cached);
+  } else if (!PT.get(slug)) {
+    // Kunjungan pertama: formulir gabung langsung tampil, peserta bisa mengetik nama sambil data acara dimuat.
+    $$('.ev-name').forEach((el) => (el.textContent = 'Memuat acara…'));
+    $('#join-desc').textContent = '';
+    $('#btn-join').disabled = true; $('#btn-join').textContent = 'Memuat…';
+    show('s-join');
+    $('#guest-name').focus();
+  }
+
+  // 2) Ambil data terbaru dari server.
+  let fresh;
+  try {
+    fresh = await api('getEvent', { slug, pt: PT.get(slug) }, { onSlow: (m) => { if (!cached) $('#info-text').textContent = m; } });
+  } catch (err) {
+    if (cached) { if (!err.retry) { store.del(CACHE_KEY); infoScreen('Gagal memuat acara', err.message); } return; }
+    return infoScreen(err.code === 'not_found' ? 'Acara tidak ditemukan' : 'Gagal memuat acara', err.message,
+      err.retry ? '<button class="btn block" onclick="location.reload()">Coba lagi</button>' : '');
+  }
+  writeCache({ event: fresh.event, joined: fresh.joined, me: fresh.me, canManage: fresh.canManage, quota: fresh.quota, shotsLeft: fresh.shotsLeft });
+
+  // 3) Jika layar yang seharusnya tampil berbeda, gambar ulang. Jika sama, cukup perbarui jatah & tautan album.
+  if (screenOf(fresh) !== shown) render(fresh);
+  else {
+    info = fresh;
+    if (shown === 'cam') {
+      quota = fresh.quota || quota;
+      $('#album-link').classList.toggle('hidden', !(fresh.state.revealed || fresh.canManage));
+      updateCounter();
+    }
+  }
 }
 
 function showJoin() {
   const e = info.event;
+  $('#btn-join').disabled = false; $('#btn-join').textContent = 'Mulai memotret';
   $('#join-desc').textContent = `${fmtDate(e.start)} – ${fmtTime(e.end)}${e.description ? '. ' + e.description : ''}`;
   // Admin tidak perlu kode akses.
   $('#code-fields').classList.toggle('hidden', !e.needsCode || info.canManage);
   show('s-join');
-  $('#guest-name').focus();
+  if (!$('#guest-name').value) $('#guest-name').focus();
 }
 
 async function doJoin(body) {
@@ -81,9 +143,11 @@ async function doJoin(body) {
     const r = await api('join', { slug, ...body });
     PT.set(slug, r.pt);
     showMsg($('#join-msg'), '');
-    document.addEventListener('click', (e) => { if (e.target.closest('[data-fb]')) Feedback.open({ slug, page: 'kamera' }); });
-
-init();
+    if (r.info) {
+      // Data acara sudah ikut dikirim: langsung tampilkan kamera tanpa menunggu server lagi.
+      writeCache({ event: r.info.event, joined: true, me: r.info.me, canManage: r.info.canManage, quota: r.info.quota, shotsLeft: r.info.shotsLeft });
+      render(r.info);
+    } else { store.del(CACHE_KEY); init(); }
   } catch (err) {
     showMsg($('#join-msg'), err.message);
   }
@@ -99,7 +163,9 @@ $('#join-form').addEventListener('submit', (ev) => {
 });
 
 /* ---------- Kamera ---------- */
+let streamFacing = '';
 async function startCamera() {
+  if (stream && stream.active && streamFacing === facing) { const v = $('#video'); if (v.srcObject !== stream) { v.srcObject = stream; v.play().catch(() => {}); } return; }
   stopCamera();
   if (!navigator.mediaDevices?.getUserMedia) {
     return infoScreen('Kamera tidak tersedia', 'Buka link ini lewat Chrome (Android) atau Safari (iPhone), dan pastikan alamatnya diawali https://.');
@@ -108,6 +174,7 @@ async function startCamera() {
     stream = await navigator.mediaDevices.getUserMedia({
       video: { facingMode: { ideal: facing }, width: { ideal: 1920 }, height: { ideal: 1920 } }, audio: false,
     });
+    streamFacing = facing;
     const v = $('#video');
     v.srcObject = stream;
     await v.play().catch(() => {});
@@ -157,8 +224,8 @@ function updateCounter() {
 function untilText(iso) {
   const ms = new Date(iso) - Date.now();
   if (ms <= 0) return 'sebentar lagi';
-  const h = Math.floor(ms / 3600000), m = Math.ceil((ms % 3600000) / 60000);
-  return h ? `${h} jam ${m} menit lagi` : `${m} menit lagi`;
+  const total = Math.ceil(ms / 60000), h = Math.floor(total / 60), m = total % 60;
+  return h ? `${h} jam${m ? ` ${m} menit` : ''} lagi` : `${m} menit lagi`;
 }
 function updateQuotaNote() {
   const el = $('#quota-note');
