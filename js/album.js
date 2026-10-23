@@ -42,8 +42,10 @@
     const mine = photos.filter((p) => p.mine).length;
     $('#tools').innerHTML =
       (mine ? `<button class="btn small" id="dl-mine">Unduh foto saya (${mine})</button>` : '') +
-      (data.folderUrl ? `<a class="btn ghost small" href="${esc(data.folderUrl)}" target="_blank" rel="noopener">Folder Drive (unduh semua)</a>` : '');
+      (data.folderUrl ? `<a class="btn ghost small" href="${esc(data.folderUrl)}" target="_blank" rel="noopener">Folder Drive (unduh semua)</a>` : '') +
+      '<button class="btn ghost small" id="btn-fb">💬 Beri masukan</button>';
     $('#dl-mine')?.addEventListener('click', downloadMine);
+    $('#btn-fb').onclick = () => Feedback.open({ slug, page: 'album' });
   }
 
   const reactTotal = (p) => Object.values(p.reactions || {}).reduce((a, b) => a + b, 0);

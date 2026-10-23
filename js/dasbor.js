@@ -57,6 +57,12 @@
       </li>`).join('');
   }
   load();
+  // Tampilkan jumlah masukan baru di tombol "Masukan pengguna".
+  api('listFeedback').then((r) => {
+    const seen = Number(store.get('momen.fb.seen') || 0);
+    const n = r.items.filter((i) => Date.parse(i.t) > seen).length;
+    if (n) $('#fb-link').innerHTML = `💬 Masukan pengguna <span class="chip menunggu">${n} baru</span>`;
+  }).catch(() => {});
 
   const form = $('#new-form');
   $('#btn-new').onclick = () => {

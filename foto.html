@@ -8,7 +8,7 @@
 <meta name="theme-color" content="#0A0C10">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=4">
+<link rel="stylesheet" href="css/style.css?v=6">
 <style>
   body.share { background: #0A0C10; color: #F1F3F6; min-height: 100vh; }
   body.share .muted { color: #9AA3B2; }
@@ -29,11 +29,13 @@
     <button class="btn block" id="btn-save">Simpan foto</button>
     <a class="btn ghost block" id="btn-event">Ikut memotret di acara ini</a>
     <p class="muted small">Di iPhone, pilih “Simpan Gambar” pada menu yang muncul. Link ini berlaku 60 hari.</p>
+    <button class="btn ghost block" id="btn-fb">💬 Beri masukan</button>
   </div>
 </main>
-<script src="js/config.js?v=4"></script>
-<script src="js/common.js?v=4"></script>
-<script src="js/api.js?v=4"></script>
+<script src="js/config.js?v=6"></script>
+<script src="js/common.js?v=6"></script>
+<script src="js/api.js?v=6"></script>
+<script src="js/feedback.js?v=6"></script>
 <script>
 (async function () {
   const d = location.hash.slice(1);
@@ -47,6 +49,7 @@
   $('#img').src = r.data; $('#img').classList.remove('hidden');
   $('#actions').style.display = '';
   $('#btn-event').href = `acara.html?e=${encodeURIComponent(r.event.slug)}`;
+  $('#btn-fb').onclick = () => Feedback.open({ slug: r.event.slug, page: 'booth-qr' });
   const bin = atob(r.data.split(',')[1]); const arr = new Uint8Array(bin.length);
   for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
   const name = `momen-ti_${new Date(r.t).toISOString().slice(0, 19).replace(/[-:T]/g, '')}.jpg`;

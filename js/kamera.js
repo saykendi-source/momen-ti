@@ -44,7 +44,7 @@ async function init() {
     sendQueue(); // kirim sisa foto yang tertunda
     const t = state.revealed ? 'Acara sudah selesai. Semua foto sudah bisa dilihat.'
       : `Acara sudah selesai. Album dibuka ${e.revealAt ? fmtDate(e.revealAt) : 'sebentar lagi'}.`;
-    return infoScreen(e.name, t, (state.revealed ? albumBtn : '') + manageLink);
+    return infoScreen(e.name, t, (state.revealed ? albumBtn : '') + '<button class="btn ghost block" data-fb>💬 Beri masukan</button>' + manageLink);
   }
 
   quota = info.quota || { mode: 'total', left: info.shotsLeft, max: info.event.maxPhotos, resetAt: null };
@@ -81,7 +81,9 @@ async function doJoin(body) {
     const r = await api('join', { slug, ...body });
     PT.set(slug, r.pt);
     showMsg($('#join-msg'), '');
-    init();
+    document.addEventListener('click', (e) => { if (e.target.closest('[data-fb]')) Feedback.open({ slug, page: 'kamera' }); });
+
+init();
   } catch (err) {
     showMsg($('#join-msg'), err.message);
   }
@@ -310,5 +312,7 @@ function updateQueueNote(waiting = false) {
     ? `Sinyal lemah atau server sibuk. ${n} foto menunggu dikirim ulang otomatis.`
     : `Mengirim ${n} foto…`;
 }
+
+document.addEventListener('click', (e) => { if (e.target.closest('[data-fb]')) Feedback.open({ slug, page: 'kamera' }); });
 
 init();

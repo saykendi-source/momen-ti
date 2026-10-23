@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Masukan pengguna · Momen TI</title>
+<link rel="icon" href="icon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css?v=6">
+</head>
+<body>
+<header class="topbar">
+  <a class="brand" href="./">Momen TI</a>
+  <a class="btn ghost small" href="./">Semua acara</a>
+</header>
+<main class="wrap" style="max-width:760px">
+  <h1>Masukan pengguna</h1>
+  <p class="muted" id="sub">Memuat masukan…</p>
+  <ul class="fb-list" id="list"></ul>
+</main>
+<script src="js/config.js?v=6"></script>
+<script src="js/common.js?v=6"></script>
+<script src="js/api.js?v=6"></script>
+<script>
+(function () {
+  if (!configured()) { $('#sub').innerHTML = setupWarning(); return; }
+  if (!Auth.get()) { location.replace('./?next=' + encodeURIComponent(location.href)); return; }
+  const PAGE = { album: 'album', kamera: 'halaman kamera', 'booth-qr': 'QR booth' };
+  (async () => {
+    let d;
+    try { d = await api('listFeedback', {}, { onSlow: (m) => { $('#sub').textContent = m; } }); }
+    catch (err) {
+      if (err.code === 'need_login') { Auth.logout(); location.replace('./?next=' + encodeURIComponent(location.href)); return; }
+      $('#sub').textContent = err.message; return;
+    }
+    const seen = Number(store.get('momen.fb.seen') || 0);
+    $('#sub').textContent = d.total ? `${d.total} masukan, terbaru di atas.` : 'Belum ada masukan.';
+    $('#list').innerHTML = d.items.map((i) => `
+      <li class="fb-item ${Date.parse(i.t) > seen ? 'new' : ''}">
+        <p>${esc(i.message)}</p>
+        <div class="meta">${fmtDate(i.t)}${i.event ? ` · ${esc(i.event)}` : ''}${i.page ? ` · dari ${esc(PAGE[i.page] || i.page)}` : ''}${i.device ? ` · ${esc(i.device)}` : ''}</div>
+      </li>`).join('');
+    // Tandai semua sebagai sudah dilihat (disimpan di perangkat admin ini).
+    store.set('momen.fb.seen', String(Date.now()));
+  })();
+})();
+</script>
+</body>
+</html>
