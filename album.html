@@ -7,11 +7,11 @@
 <link rel="icon" href="icon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&display=swap" onload="this.onload=null;this.rel='stylesheet'"><noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&display=swap"></noscript>
-<link rel="stylesheet" href="css/style.css?v=10">
+<link rel="stylesheet" href="css/style.css?v=11">
 </head>
 <body>
 <header class="topbar">
-  <a class="brand" id="back" href="#">Kamera</a>
+  <a class="back-btn" id="back" href="#"><span aria-hidden="true">‹</span> Kembali ke kamera</a>
   <a class="btn ghost small hidden" id="manage" href="./">Kelola</a>
 </header>
 <main class="wrap">
@@ -27,9 +27,11 @@
   <div class="photo-grid" id="grid"></div>
 </main>
 
+<a class="fab hidden" id="fab" aria-label="Kembali ke kamera untuk memotret lagi"><span aria-hidden="true">📷</span> Potret lagi</a>
+
 <dialog class="viewer" id="viewer" aria-label="Lihat foto">
   <div class="viewer-inner">
-    <div class="viewer-bar"><span id="v-by" class="small"></span><button class="btn ghost small" id="v-close">Tutup</button></div>
+    <div class="viewer-bar"><button class="btn ghost small" id="v-close"><span aria-hidden="true">‹</span> Kembali ke album</button><span id="v-by" class="small" style="text-align:right"></span></div>
     <div class="viewer-img"><img id="v-img" alt=""></div>
     <div>
       <div class="reacts" id="v-reacts" role="group" aria-label="Reaksi"></div>
@@ -63,11 +65,11 @@
   <p class="muted small" style="margin:.75rem 0 0">Hanya aktivitas pada foto yang kamu ambil dari HP ini.</p>
 </dialog>
 
-<script src="js/config.js?v=10"></script>
-<script src="js/common.js?v=10"></script>
-<script src="js/api.js?v=10"></script>
-<script src="js/thumbs.js?v=10"></script>
-<script src="js/feedback.js?v=10"></script>
-<script src="js/album.js?v=10"></script>
+<script src="js/config.js?v=11"></script>
+<script src="js/common.js?v=11"></script>
+<script src="js/api.js?v=11"></script>
+<script src="js/thumbs.js?v=11"></script>
+<script src="js/feedback.js?v=11"></script>
+<script src="js/album.js?v=11"></script>
 </body>
 </html>

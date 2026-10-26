@@ -242,3 +242,13 @@ form textarea, .field textarea { width: 100%; font: inherit; color: var(--ink); 
 .act-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .act-txt { font-size: .9rem; overflow-wrap: anywhere; }
 .act-txt small { display: block; color: var(--muted); font-size: .75rem; margin-top: .15rem; }
+
+/* ===== v11: Navigasi album ===== */
+.back-btn { display: inline-flex; align-items: center; gap: .45rem; font-weight: 700; color: var(--ink); text-decoration: none; padding: .45rem .9rem .45rem .7rem; border-radius: 999px; box-shadow: inset 0 0 0 1.5px var(--line); }
+.back-btn span { font-size: 1.35rem; line-height: 1; margin-top: -2px; }
+.back-btn:hover { box-shadow: inset 0 0 0 1.5px var(--accent); }
+.fab { position: fixed; right: 1rem; bottom: calc(1rem + env(safe-area-inset-bottom, 0px)); z-index: 20; display: inline-flex; align-items: center; gap: .45rem; padding: .85rem 1.2rem; border-radius: 999px; background: var(--accent); color: var(--accent-ink); font-weight: 800; text-decoration: none; box-shadow: 0 10px 28px rgba(0,0,0,.28); }
+.fab span { font-size: 1.15rem; }
+main.wrap { padding-bottom: 5.5rem; }
+dialog.viewer .viewer-bar .btn { white-space: nowrap; }
+dialog.viewer .viewer-bar .btn span { font-size: 1.2rem; line-height: 1; }

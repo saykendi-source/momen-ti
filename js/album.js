@@ -2,6 +2,28 @@
   const slug = qs('e') || '';
   const pt = () => PT.get(slug);
   $('#back').href = `acara.html?e=${encodeURIComponent(slug)}`;
+  $('#fab').href = `acara.html?e=${encodeURIComponent(slug)}`;
+
+  /* ---------- Lapisan (penampil foto, daftar aktivitas) yang ikut tombol "kembali" HP ---------- */
+  // Saat lapisan dibuka, satu langkah riwayat ditambahkan. Tombol kembali di HP/browser menutup lapisan,
+  // bukan keluar dari album.
+  function openLayer(dlg) {
+    if (dlg.open) return;
+    dlg.showModal();
+    history.pushState({ layer: dlg.id }, '');
+    $('#fab').classList.add('hidden');
+  }
+  function closeLayer(dlg) {
+    if (!dlg.open) return;
+    if (history.state && history.state.layer === dlg.id) history.back(); // popstate yang menutup
+    else { dlg.close(); afterClose(); }
+  }
+  function afterClose() { $('#fab').classList.toggle('hidden', !(data && data.cameraOpen)); }
+  window.addEventListener('popstate', () => {
+    ['viewer', 'act-dlg'].forEach((id) => { const d = $('#' + id); if (d.open) d.close(); });
+    afterClose();
+  });
+  ['viewer', 'act-dlg'].forEach((id) => $('#' + id).addEventListener('cancel', (e) => { e.preventDefault(); closeLayer($('#' + id)); }));
   if (!configured()) { $('#sub').textContent = ''; $('main').insertAdjacentHTML('afterbegin', setupWarning()); return; }
 
   const thumbs = ThumbLoader(slug, pt);
@@ -34,6 +56,7 @@
       ? `${photos.length} foto dari ${data.people} orang${data.manager && !data.revealed ? ' · Kamu melihat sebagai admin, peserta belum bisa melihat album ini.' : ''}`
       : 'Belum ada foto di album ini.';
     renderTools();
+    afterClose();
     $('#tabs').classList.toggle('hidden', !photos.length);
     $('#tabs [data-tab="saya"]').classList.toggle('hidden', !data.joined);
     // Efek "cuci film" hanya saat pertama kali album yang sudah dibuka dilihat di HP ini.
@@ -81,17 +104,18 @@
         <span class="act-thumb">${p ? `<img src="${thumbs.get(p.id) || ''}" alt="">` : ''}</span>
         <span class="act-txt">${actText(a)}<small>${fmtDate(a.t)}</small></span></button></li>`;
     }).join('') : '<li class="muted" style="padding:1rem 0">Belum ada aktivitas di fotomu.</li>';
-    $('#act-dlg').showModal();
+    openLayer($('#act-dlg'));
     if (items.length) store.set(SEEN_KEY, items[0].t); // tandai sudah dilihat (memakai waktu server)
     renderTools();
     $$('#grid .has-new').forEach((el) => el.classList.remove('has-new'));
   }
-  $('#act-close').onclick = () => $('#act-dlg').close();
+  $('#act-close').onclick = () => closeLayer($('#act-dlg'));
   $('#act-dlg').addEventListener('click', (e) => {
-    if (e.target === $('#act-dlg')) return $('#act-dlg').close();
+    if (e.target === $('#act-dlg')) return closeLayer($('#act-dlg'));
     const b = e.target.closest('[data-ai]'); if (!b) return;
     const a = data.activity[+b.dataset.ai];
-    $('#act-dlg').close();
+    $('#act-dlg').close(); // riwayat dipakai ulang untuk penampil foto
+    if (history.state && history.state.layer === 'act-dlg') history.replaceState({ layer: 'viewer' }, '');
     if (tab !== 'semua') { tab = 'semua'; $$('#tabs [data-tab]').forEach((x) => x.setAttribute('aria-selected', x.dataset.tab === 'semua')); renderGrid(); }
     const i = view.findIndex((p) => p.id === a.photoId);
     if (i < 0) return toast('Foto ini sudah tidak tersedia.');
@@ -138,7 +162,10 @@
     $('#v-ctoggle').textContent = `Komentar (${p.comments})`;
     $('#v-comments').classList.toggle('hidden', !(commentsOn && commentsOpen));
     if (commentsOn && commentsOpen) loadComments(p);
-    if (!$('#viewer').open) $('#viewer').showModal();
+    if (!$('#viewer').open) {
+      if (history.state && history.state.layer === 'viewer') { $('#viewer').showModal(); $('#fab').classList.add('hidden'); }
+      else openLayer($('#viewer'));
+    }
     setDlReady(full.has(p.id));
     if (!full.has(p.id)) {
       try {
@@ -155,7 +182,15 @@
   }
 
   $('#grid').addEventListener('click', (e) => { const b = e.target.closest('[data-i]'); if (b) open(+b.dataset.i); });
-  $('#v-close').onclick = () => $('#viewer').close();
+  $('#v-close').onclick = () => closeLayer($('#viewer'));
+  // Geser kiri/kanan untuk berpindah foto.
+  let touchX = null;
+  $('.viewer-img').addEventListener('touchstart', (e) => { touchX = e.touches.length === 1 ? e.touches[0].clientX : null; }, { passive: true });
+  $('.viewer-img').addEventListener('touchend', (e) => {
+    if (touchX === null) return;
+    const dx = e.changedTouches[0].clientX - touchX; touchX = null;
+    if (Math.abs(dx) > 50) open(idx + (dx < 0 ? 1 : -1));
+  });
   $('#v-prev').onclick = () => open(idx - 1);
   $('#v-next').onclick = () => open(idx + 1);
   $('#viewer').addEventListener('keydown', (e) => {
@@ -342,7 +377,7 @@
       await api('deleteMine', { slug, pt: pt(), id: p.id });
       photos = photos.filter((x) => x.id !== p.id);
       data.activity = (data.activity || []).filter((a) => a.photoId !== p.id);
-      $('#viewer').close();
+      closeLayer($('#viewer'));
       $('#sub').textContent = photos.length ? `${photos.length} foto` : 'Belum ada foto di album ini.';
       renderTools(); renderGrid();
       toast('Foto dihapus');
