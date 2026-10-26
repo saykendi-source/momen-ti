@@ -14,6 +14,8 @@
       $('#ev-name').textContent = err.message; return;
     }
     ev = data.event;
+    applyAccent(ev.accent);
+    loadCover();
     $('#content').classList.remove('hidden');
     document.title = `${ev.name} · ${MOMEN.APP_NAME}`;
     $('#ev-name').textContent = ev.name;
@@ -61,6 +63,7 @@
       <figure class="${p.hidden ? 'is-hidden' : ''}" data-id="${p.id}">
         <img alt="Foto oleh ${esc(p.by)}">
         ${p.reports ? `<span class="chip ditolak badge">${p.reports} laporan</span>` : p.hidden ? '<span class="chip badge">Disembunyikan</span>' : ''}
+        ${p.caption ? `<span class="cap" title="${esc(p.caption)}">“${esc(p.caption)}”</span>` : ''}
         <span class="by">${esc(p.by)}</span>
         <div class="tools">
           <button class="btn ghost small" data-act="${p.hidden ? 'show' : 'hide'}" style="color:#fff">${p.hidden ? 'Tampilkan' : 'Sembunyikan'}</button>
@@ -171,6 +174,144 @@
   $('#btn-booth-name').onclick = () => boothSetup({ name: $('#booth-name-input').value }, 'Nama booth disimpan');
   $('#btn-booth-reset').onclick = () => {
     if (confirm('Buat kode booth baru? Semua layar booth yang sudah terpasang harus dipasang ulang dengan kode baru.')) boothSetup({ reset: true }, 'Kode baru dibuat. Booth lama sudah dicabut.');
+  };
+
+  /* ---------- Sampul acara ---------- */
+  let coverData = '';
+  async function loadCover() {
+    if (!ev.cover) { coverData = ''; showCover(); return; }
+    const key = 'momen.cover.' + ev.cover;
+    coverData = store.get(key) || '';
+    if (!coverData) {
+      try { coverData = (await api('cover', { slug: ev.slug })).data || ''; if (coverData) store.set(key, coverData); } catch {}
+    }
+    showCover();
+  }
+  function showCover() {
+    $('#cover-img').classList.toggle('hidden', !coverData);
+    $('#cover-empty').classList.toggle('hidden', !!coverData);
+    $('#cover-remove').classList.toggle('hidden', !coverData);
+    if (coverData) $('#cover-img').src = coverData;
+  }
+  // Potong 16:9 dan perkecil di browser agar ringan (±100 KB).
+  function cropCover(file) {
+    return new Promise((res, rej) => {
+      const img = new Image();
+      img.onload = () => {
+        const W = 1000, H = 563, r = W / H;
+        let sw = img.naturalWidth, sh = img.naturalHeight, sx = 0, sy = 0;
+        if (sw / sh > r) { sx = (sw - sh * r) / 2; sw = sh * r; } else { sy = (sh - sw / r) / 2; sh = sw / r; }
+        const c = document.createElement('canvas'); c.width = W; c.height = H;
+        const x = c.getContext('2d'); x.imageSmoothingQuality = 'high';
+        x.drawImage(img, sx, sy, sw, sh, 0, 0, W, H);
+        let q = 0.8, d = c.toDataURL('image/jpeg', q);
+        while (d.length > 190 * 1024 && q > 0.4) { q -= 0.1; d = c.toDataURL('image/jpeg', q); }
+        URL.revokeObjectURL(img.src); res(d);
+      };
+      img.onerror = () => rej(new Error('Gambar tidak bisa dibaca. Coba file JPG atau PNG.'));
+      img.src = URL.createObjectURL(file);
+    });
+  }
+  $('#cover-file').addEventListener('change', async (e) => {
+    const f = e.target.files[0]; e.target.value = '';
+    if (!f) return;
+    try {
+      const d = await cropCover(f);
+      coverData = d; showCover(); toast('Mengunggah sampul…');
+      const r = await api('setCover', { id, image: d });
+      ev.cover = r.cover; store.set('momen.cover.' + r.cover, d);
+      toast('Sampul tersimpan');
+    } catch (err) { toast(err.message); loadCover(); }
+  });
+  $('#cover-remove').onclick = async () => {
+    if (!confirm('Hapus sampul acara?')) return;
+    try { await api('setCover', { id }); ev.cover = ''; coverData = ''; showCover(); toast('Sampul dihapus'); } catch (err) { toast(err.message); }
+  };
+
+  /* ---------- Poster QR siap cetak (A4, 200 dpi) ---------- */
+  function wrapLines(x, text, maxW, maxLines) {
+    const words = text.split(/\s+/), lines = [];
+    let line = '';
+    for (const w of words) {
+      const t = line ? line + ' ' + w : w;
+      if (x.measureText(t).width <= maxW) line = t;
+      else { if (line) lines.push(line); line = w; }
+    }
+    if (line) lines.push(line);
+    if (lines.length > maxLines) { lines.length = maxLines; lines[maxLines - 1] += '…'; }
+    return lines;
+  }
+  function roundRect(x, X, Y, W, H, r) { x.beginPath(); x.roundRect ? x.roundRect(X, Y, W, H, r) : x.rect(X, Y, W, H); }
+  async function makePoster() {
+    try { await Promise.all(['800 120px "Bricolage Grotesque"', '600 48px "Bricolage Grotesque"'].map((f) => document.fonts.load(f))); } catch {}
+    const W = 1654, H = 2339, M = 130, accent = ev.accent || '#1A9BA1', ink = inkFor(accent);
+    const F = (w, s) => `${w} ${s}px "Bricolage Grotesque", system-ui, sans-serif`;
+    const c = document.createElement('canvas'); c.width = W; c.height = H;
+    const x = c.getContext('2d');
+    x.fillStyle = '#FBFBF8'; x.fillRect(0, 0, W, H);
+    // Pita atas bercorak strip film
+    x.fillStyle = accent; x.fillRect(0, 0, W, 230);
+    x.fillStyle = 'rgba(0,0,0,.18)';
+    for (let i = 0; i < W; i += 70) { roundRect(x, i + 18, 22, 34, 26, 6); x.fill(); roundRect(x, i + 18, 182, 34, 26, 6); x.fill(); }
+    x.fillStyle = ink; x.font = F(800, 64); x.textBaseline = 'middle';
+    x.fillText('📸  Momen TI', M, 115);
+    x.font = F(600, 36); x.textAlign = 'right'; x.fillText('Kamera bersama acara', W - M, 118); x.textAlign = 'left';
+    // Judul & waktu
+    let y = 330;
+    x.fillStyle = '#1C2230'; x.textBaseline = 'alphabetic';
+    let size = 124; x.font = F(800, size);
+    let lines = wrapLines(x, ev.name, W - M * 2, 3);
+    if (lines.length > 2) { size = 100; x.font = F(800, size); lines = wrapLines(x, ev.name, W - M * 2, 3); }
+    lines.forEach((l) => { y += size; x.fillText(l, M, y); });
+    y += 90; x.font = F(500, 46); x.fillStyle = "#5F6878";
+    x.fillText(`${fmtDate(ev.start)} – ${fmtTime(ev.end)}`, M, y);
+    // Sampul (jika ada)
+    y += 60;
+    if (coverData) {
+      const img = await new Promise((r) => { const i = new Image(); i.onload = () => r(i); i.onerror = () => r(null); i.src = coverData; });
+      if (img) {
+        const cw = W - M * 2, ch = Math.round(cw / 2.6), sh = img.naturalWidth / 2.6, sy = (img.naturalHeight - sh) / 2;
+        x.save(); roundRect(x, M, y, cw, ch, 28); x.clip(); x.drawImage(img, 0, sy, img.naturalWidth, sh, M, y, cw, ch); x.restore();
+        y += ch + 70;
+      }
+    } else y += 30;
+    // QR
+    const qr = qrcode(0, 'M'); qr.addData(ev.url); qr.make();
+    const n = qr.getModuleCount();
+    const qs = Math.min(coverData ? 680 : 820, H - y - 360), cell = Math.floor(qs / (n + 4)), qsz = cell * (n + 4);
+    x.fillStyle = '#FFFFFF'; x.strokeStyle = '#D3D8E0'; x.lineWidth = 4;
+    roundRect(x, M, y, qsz + 40, qsz + 40, 32); x.fill(); x.stroke();
+    x.fillStyle = '#000';
+    for (let r = 0; r < n; r++) for (let k = 0; k < n; k++) if (qr.isDark(r, k)) x.fillRect(M + 20 + (k + 2) * cell, y + 20 + (r + 2) * cell, cell, cell);
+    // Langkah-langkah
+    const sx = M + qsz + 110, steps = [['Scan QR', 'dengan kamera HP'], ['Isi nama & potret', 'pilih filter favoritmu'], ['Lihat album', 'semua foto acara di satu tempat']];
+    let sy2 = y + 40;
+    steps.forEach(([t, d], i) => {
+      x.fillStyle = accent; x.beginPath(); x.arc(sx + 42, sy2 + 42, 42, 0, Math.PI * 2); x.fill();
+      x.fillStyle = ink; x.font = F(800, 46); x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(String(i + 1), sx + 42, sy2 + 44);
+      x.textAlign = 'left'; x.textBaseline = 'alphabetic';
+      x.fillStyle = '#1C2230'; x.font = F(700, 50); x.fillText(t, sx + 115, sy2 + 40);
+      x.fillStyle = '#5F6878'; x.font = F(500, 36); x.fillText(d, sx + 115, sy2 + 88);
+      sy2 += Math.max(170, qsz / 3.2);
+    });
+    if (ev.code) {
+      x.fillStyle = '#1C2230'; x.font = F(600, 40); x.fillText('Kode akses:', sx, sy2 + 20);
+      x.font = F(800, 64); x.fillStyle = accent === '#F2A93B' ? '#1C2230' : accent; x.fillText(ev.code, sx, sy2 + 95);
+    }
+    // Kaki poster
+    x.fillStyle = '#5F6878'; x.font = F(500, 34); x.textAlign = 'center';
+    x.fillText('Tanpa install aplikasi · Foto tersimpan di album acara', W / 2, H - 140);
+    x.font = F(500, 28); x.fillStyle = '#8B95A6';
+    x.fillText(ev.url.replace(/^https?:\/\//, ''), W / 2, H - 90);
+    return c;
+  }
+  $('#dl-poster').onclick = async () => {
+    const b = $('#dl-poster'); b.disabled = true; b.textContent = 'Menyiapkan…';
+    try {
+      const c = await makePoster();
+      const a = document.createElement('a'); a.href = c.toDataURL('image/png'); a.download = `poster-${ev.slug}.png`; a.click();
+    } catch (err) { toast('Poster gagal dibuat: ' + err.message); }
+    b.disabled = false; b.textContent = 'Unduh poster';
   };
 
   load();

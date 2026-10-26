@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&display=swap" onload="this.onload=null;this.rel='stylesheet'"><noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&display=swap"></noscript>
 <title>Kelola acara · Momen TI</title>
-<link rel="stylesheet" href="css/style.css?v=7">
+<link rel="stylesheet" href="css/style.css?v=9">
 </head>
 <body>
 <header class="topbar">
@@ -34,11 +34,28 @@
           <p class="muted" style="margin:0">Cetak QR ini di meja atau tampilkan di layar. Peserta cukup scan, tanpa install aplikasi.</p>
           <div class="copy"><input id="link" readonly aria-label="Link kamera acara"><button class="btn ghost small" id="btn-copy">Salin</button></div>
           <div class="row">
-            <button class="btn small" id="dl-qr">Unduh QR</button>
+            <button class="btn small" id="dl-poster">Unduh poster</button>
+            <button class="btn ghost small" id="dl-qr">Unduh QR saja</button>
             <a class="btn ghost small" id="open-cam">Buka kamera</a>
             <a class="btn ghost small" id="open-album">Lihat album</a>
             <a class="btn ghost small" id="open-drive" target="_blank" rel="noopener">Folder Drive</a>
           </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Sampul acara</h2>
+      <div class="cover-box">
+        <div class="cover-preview" id="cover-preview"><span id="cover-empty">Belum ada sampul</span><img id="cover-img" alt="Sampul acara" class="hidden"></div>
+        <div class="stack">
+          <p class="muted small" style="margin:0">Tampil di bagian atas halaman yang dibuka peserta setelah scan QR, dan di poster. Gunakan foto lokasi, poster acara, atau logo. Gambar otomatis dipotong 16:9.</p>
+          <div class="row">
+            <label class="btn small" for="cover-file" style="margin:0">Pilih gambar</label>
+            <input type="file" id="cover-file" accept="image/*" class="hidden">
+            <button class="btn ghost small hidden" id="cover-remove">Hapus sampul</button>
+          </div>
+          <p class="muted small" style="margin:0">Warna acara bisa diubah di <b>Pengaturan acara</b>.</p>
         </div>
       </div>
     </section>
@@ -100,12 +117,12 @@
   </div>
 </main>
 <script src="js/vendor/qrcode.js"></script>
-<script src="js/config.js?v=7"></script>
-<script src="js/common.js?v=7"></script>
-<script src="js/api.js?v=7"></script>
-<script src="js/filters.js?v=7"></script>
-<script src="js/event-form.js?v=7"></script>
-<script src="js/thumbs.js?v=7"></script>
-<script src="js/kelola.js?v=7"></script>
+<script src="js/config.js?v=9"></script>
+<script src="js/common.js?v=9"></script>
+<script src="js/api.js?v=9"></script>
+<script src="js/filters.js?v=9"></script>
+<script src="js/event-form.js?v=9"></script>
+<script src="js/thumbs.js?v=9"></script>
+<script src="js/kelola.js?v=9"></script>
 </body>
 </html>

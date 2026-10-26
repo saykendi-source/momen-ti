@@ -9,8 +9,8 @@
 <meta name="theme-color" content="#0A0C10">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Caveat:wght@600&display=swap" onload="this.onload=null;this.rel='stylesheet'"><noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Caveat:wght@600&display=swap"></noscript>
-<link rel="stylesheet" href="css/style.css?v=7">
-<link rel="stylesheet" href="css/kamera.css?v=7">
+<link rel="stylesheet" href="css/style.css?v=9">
+<link rel="stylesheet" href="css/kamera.css?v=9">
 </head>
 <body class="cam">
 
@@ -24,8 +24,10 @@
 
 <section class="screen hidden" id="s-join">
   <div class="center"><div class="card">
+    <div class="join-hero" id="join-hero" aria-hidden="true"><img id="join-cover" alt="" class="hidden"></div>
     <h1 class="ev-name"></h1>
     <p class="muted" id="join-desc"></p>
+    <p class="people hidden" id="join-people"></p>
     <form id="join-form" novalidate>
       <div id="guest-fields">
         <label for="guest-name">Nama kamu</label>
@@ -46,16 +48,20 @@
 <section class="screen hidden" id="s-cam">
   <div class="cam-head">
     <span class="cam-title ev-name"></span>
-    <a class="btn ghost small" id="album-link">Album</a>
+    <div class="row" style="gap:.5rem; flex-wrap:nowrap">
+      <div class="counter" aria-live="polite"><span class="win"><b id="shots">0</b></span><span id="shots-label">sisa foto</span></div>
+      <a class="btn ghost small" id="album-link">Album</a>
+    </div>
   </div>
   <div class="viewfinder" id="vf">
     <video id="video" playsinline muted autoplay></video>
     <div class="frame-guide"></div>
     <div class="flash" id="flash"></div>
+    <img class="fly hidden" id="fly" alt="">
   </div>
   <div class="filters" id="filters" role="group" aria-label="Pilih filter"></div>
   <div class="cam-controls">
-    <div class="counter" aria-live="polite"><b id="shots">0</b><span id="shots-label">sisa foto</span></div>
+    <button class="last-btn" id="last" aria-label="Lihat foto terakhir" disabled><img id="last-img" alt="" class="hidden"></button>
     <button class="shutter" id="shutter" aria-label="Ambil foto"></button>
     <button class="side-btn" id="flip" aria-label="Ganti kamera depan/belakang">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 7h-3l-2-3H9L7 7H4a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1V8a1 1 0 0 0-1-1Z"/><path d="M9 13a3 3 0 0 1 5.2-2"/><path d="M15 13a3 3 0 0 1-5.2 2"/></svg>
@@ -63,16 +69,32 @@
   </div>
   <div class="queue-note" id="queue-note" aria-live="polite"></div>
   <div class="quota-note hidden" id="quota-note" aria-live="polite"></div>
+  <div class="cap-sheet hidden" id="cap-sheet" role="dialog" aria-labelledby="cap-title">
+    <img id="cap-preview" alt="Pratinjau foto">
+    <div class="cap-panel">
+      <label id="cap-title" for="cap-text">Tulis sesuatu di bingkai <span>(opsional)</span></label>
+      <div class="cap-input"><input id="cap-text" maxlength="40" autocomplete="off" enterkeyhint="done" placeholder="Contoh: Ngoding bareng, sukses bareng"><span id="cap-count">0/40</span></div>
+      <div class="cap-presets" id="cap-presets"></div>
+      <p class="cap-err hidden" id="cap-err" role="alert"></p>
+      <div class="cap-actions"><button type="button" class="btn ghost" id="cap-skip">Lewati</button><button type="button" class="btn" id="cap-save">Simpan foto</button></div>
+    </div>
+  </div>
+  <div class="last-view hidden" id="last-view" role="dialog" aria-label="Foto terakhir">
+    <img id="last-full" alt="Foto terakhir">
+    <p id="last-note">Foto ini sudah masuk ke album acara.</p>
+    <div class="row" style="justify-content:center"><a class="btn small hidden" id="last-album">Lihat album</a><button class="btn ghost small" id="last-close">Tutup</button></div>
+  </div>
   <div class="roll-banner hidden" id="roll-banner"><div><span class="can" aria-hidden="true">🎞️</span><b id="roll-title">Rol baru!</b><small id="roll-text"></small></div></div>
 </section>
 
 <canvas id="canvas" hidden></canvas>
-<script src="js/config.js?v=7"></script>
-<script src="js/common.js?v=7"></script>
-<script src="js/api.js?v=7"></script>
-<script src="js/filters.js?v=7"></script>
-<script src="js/queue.js?v=7"></script>
-<script src="js/feedback.js?v=7"></script>
-<script src="js/kamera.js?v=7"></script>
+<script src="js/config.js?v=9"></script>
+<script src="js/common.js?v=9"></script>
+<script src="js/api.js?v=9"></script>
+<script src="js/filters.js?v=9"></script>
+<script src="js/queue.js?v=9"></script>
+<script src="js/feedback.js?v=9"></script>
+<script src="js/caption.js?v=9"></script>
+<script src="js/kamera.js?v=9"></script>
 </body>
 </html>

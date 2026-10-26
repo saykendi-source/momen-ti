@@ -7,7 +7,7 @@
 <link rel="icon" href="icon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&display=swap" onload="this.onload=null;this.rel='stylesheet'"><noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&display=swap"></noscript>
-<link rel="stylesheet" href="css/style.css?v=7">
+<link rel="stylesheet" href="css/style.css?v=9">
 </head>
 <body>
 <header class="topbar">
@@ -18,6 +18,11 @@
   <h1 id="title">Album</h1>
   <p class="muted" id="sub" aria-live="polite">Memuat album…</p>
   <div class="album-tools" id="tools"></div>
+  <div class="tabs hidden" id="tabs" role="tablist" aria-label="Saring foto">
+    <button role="tab" data-tab="semua" aria-selected="true">Semua</button>
+    <button role="tab" data-tab="saya" aria-selected="false">Foto saya</button>
+    <button role="tab" data-tab="favorit" aria-selected="false">Terfavorit</button>
+  </div>
   <div id="locked" class="panel hidden"></div>
   <div class="photo-grid" id="grid"></div>
 </main>
@@ -51,11 +56,11 @@
   </div>
 </dialog>
 
-<script src="js/config.js?v=7"></script>
-<script src="js/common.js?v=7"></script>
-<script src="js/api.js?v=7"></script>
-<script src="js/thumbs.js?v=7"></script>
-<script src="js/feedback.js?v=7"></script>
-<script src="js/album.js?v=7"></script>
+<script src="js/config.js?v=9"></script>
+<script src="js/common.js?v=9"></script>
+<script src="js/api.js?v=9"></script>
+<script src="js/thumbs.js?v=9"></script>
+<script src="js/feedback.js?v=9"></script>
+<script src="js/album.js?v=9"></script>
 </body>
 </html>

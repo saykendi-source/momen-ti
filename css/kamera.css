@@ -1,6 +1,6 @@
 /* Layar kamera selalu gelap, seperti jendela bidik. */
 html, body { height: 100%; }
-body.cam { padding: 0; background: #0A0C10; color: #F1F3F6; overflow: hidden; }
+body.cam { --event: #F2A93B; --event-ink: #14110A; padding: 0; background: #0A0C10; color: #F1F3F6; overflow: hidden; }
 body.cam a { color: #8FD9DC; }
 body.cam input { background: #171B23; border-color: #333B49; color: #F1F3F6; }
 body.cam .btn.ghost { color: #F1F3F6; box-shadow: inset 0 0 0 1.5px #3A4352; }
@@ -61,3 +61,58 @@ body.cam .msg { background: rgba(224,103,92,.15); color: #F09A91; }
 @keyframes spinin { from { transform: rotate(-200deg) scale(.3); opacity: 0; } }
 @keyframes fadein { from { opacity: 0; } }
 #s-cam { position: fixed; }
+
+/* ===== v8 ===== */
+/* Sampul & bukti sosial di layar gabung */
+.join-hero { aspect-ratio: 16 / 9; border-radius: 14px; overflow: hidden; margin-bottom: 1.1rem;
+  background: repeating-linear-gradient(90deg, var(--event) 0 22px, color-mix(in srgb, var(--event) 70%, #000) 22px 27px); position: relative; }
+.join-hero::after { content: ""; position: absolute; inset: 0; background: radial-gradient(120% 90% at 50% 120%, rgba(10,12,16,.55), transparent 60%); }
+.join-hero img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.people { color: var(--event); font-weight: 700; font-size: .92rem; margin: -.4rem 0 1rem; }
+
+/* Penghitung film di kepala layar, angka "berputar" saat berubah */
+.cam-head .counter { flex-direction: row; gap: .45rem; padding: .2rem .55rem .2rem .25rem; min-width: 0; border-radius: 999px; }
+.counter .win { display: inline-grid; place-items: center; min-width: 2.1rem; height: 1.9rem; border-radius: 999px; background: #000; overflow: hidden; }
+.counter b { font-size: 1.15rem; color: var(--event); line-height: 1; }
+.counter span#shots-label { font-size: .72rem; white-space: nowrap; }
+.counter b.tick { animation: tick .45s cubic-bezier(.2,.8,.2,1); }
+@keyframes tick { from { transform: translateY(-110%); opacity: 0; } to { transform: none; opacity: 1; } }
+
+/* Tombol rana memakai warna acara */
+.shutter { background: var(--event); }
+
+/* Pratinjau filter berupa gambar kecil */
+.filters { gap: .7rem; padding: .75rem .9rem .3rem; }
+.filters button { display: grid; justify-items: center; gap: .25rem; padding: 0; border: 0; background: transparent; color: #C9CFD9; font-size: .72rem; font-weight: 600; }
+.filters button canvas { width: 52px; height: 52px; border-radius: 50%; background: #171B23; border: 2px solid #2A313D; display: block; }
+.filters button[aria-pressed="true"] { background: transparent; color: #F1F3F6; }
+.filters button[aria-pressed="true"] canvas { border-color: var(--event); box-shadow: 0 0 0 2px #0A0C10, 0 0 0 4px var(--event); }
+.filters small { display: none; }
+
+/* Foto terakhir di pojok kiri bawah */
+.cam-controls .last-btn { justify-self: start; width: 52px; height: 52px; border-radius: 10px; border: 2px solid #2A313D; background: #171B23; padding: 0; overflow: hidden; cursor: pointer; }
+.cam-controls .last-btn:disabled { cursor: default; opacity: .55; }
+.last-btn img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.fly { position: absolute; left: 50%; top: 50%; width: 60%; transform: translate(-50%, -50%); border-radius: 6px; box-shadow: 0 10px 30px rgba(0,0,0,.6); z-index: 5; pointer-events: none; }
+.last-view { position: absolute; inset: 0; z-index: 25; background: rgba(10,12,16,.94); display: grid; place-items: center; align-content: center; gap: .9rem; padding: 1.2rem; text-align: center; }
+.last-view img { max-width: 100%; max-height: 64vh; border-radius: 4px; box-shadow: 0 16px 40px rgba(0,0,0,.6); }
+.last-view p { margin: 0; color: #C9CFD9; font-size: .9rem; }
+.roll-banner b, .quota-note b { color: inherit; }
+
+/* ===== v9: Kata di bingkai ===== */
+.cap-sheet { position: absolute; inset: 0; z-index: 24; background: rgba(10,12,16,.96); display: grid; grid-template-rows: minmax(0, 1fr) auto; padding: .9rem .9rem calc(.9rem + env(safe-area-inset-bottom, 0px)); gap: .8rem; }
+.cap-sheet > img { justify-self: center; align-self: center; max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 4px; box-shadow: 0 14px 36px rgba(0,0,0,.6); }
+.cap-panel { display: grid; gap: .55rem; max-width: 520px; width: 100%; justify-self: center; }
+.cap-panel label { font-weight: 700; font-size: .95rem; margin: 0; }
+.cap-panel label span { font-weight: 400; color: #8B95A6; }
+.cap-input { position: relative; }
+.cap-input input { width: 100%; padding-right: 3.6rem; font-size: 1rem; }
+.cap-input input:focus { border-color: var(--event); outline: none; }
+.cap-input span { position: absolute; right: .7rem; top: 50%; transform: translateY(-50%); font-size: .75rem; color: #8B95A6; font-variant-numeric: tabular-nums; }
+.cap-presets { display: flex; gap: .4rem; overflow-x: auto; scrollbar-width: none; padding-bottom: .1rem; }
+.cap-presets::-webkit-scrollbar { display: none; }
+.cap-presets button { flex: 0 0 auto; font: inherit; font-size: .82rem; color: #E7EAF0; background: #171B23; border: 1.5px solid #2A313D; border-radius: 999px; padding: .32rem .75rem; cursor: pointer; white-space: nowrap; }
+.cap-presets button:hover, .cap-presets button:focus-visible { border-color: var(--event); }
+.cap-err { margin: 0; font-size: .85rem; color: #F09A91; }
+.cap-actions { display: grid; grid-template-columns: 1fr 2fr; gap: .6rem; }
+.cap-actions .btn { width: 100%; }

@@ -7,7 +7,7 @@
   const thumbs = ThumbLoader(slug, pt);
   const full = new Map();           // foto resolusi penuh yang sudah diambil
   const commentCache = new Map();   // komentar per foto
-  let data = null, photos = [], idx = 0, commentsOpen = false;
+  let data = null, photos = [], view = [], idx = 0, commentsOpen = false, tab = 'semua';
 
   /* ---------- Muat album (daftar foto dulu, thumbnail menyusul) ---------- */
   async function load() {
@@ -26,6 +26,7 @@
       return;
     }
     photos = data.photos;
+    applyAccent(data.event.accent);
     document.title = `Album · ${data.event.name}`;
     $('#title').textContent = data.event.name;
     $('#manage').classList.toggle('hidden', !data.manager);
@@ -33,10 +34,32 @@
       ? `${photos.length} foto dari ${data.people} orang${data.manager && !data.revealed ? ' · Kamu melihat sebagai admin, peserta belum bisa melihat album ini.' : ''}`
       : 'Belum ada foto di album ini.';
     renderTools();
-    $('#grid').innerHTML = photos.map((p, i) => `
-      <button data-i="${i}" data-id="${p.id}" aria-label="Foto oleh ${esc(p.by)}"><img alt=""><span class="counts">${countsHtml(p)}</span></button>`).join('');
+    $('#tabs').classList.toggle('hidden', !photos.length);
+    $('#tabs [data-tab="saya"]').classList.toggle('hidden', !data.joined);
+    // Efek "cuci film" hanya saat pertama kali album yang sudah dibuka dilihat di HP ini.
+    const devKey = 'momen.dev.' + slug;
+    if (data.revealed && photos.length && !store.get(devKey)) { $('#grid').classList.add('develop'); store.set(devKey, '1'); }
+    renderGrid();
+  }
+
+  function renderGrid() {
+    if (tab === 'saya') view = photos.filter((p) => p.mine);
+    else if (tab === 'favorit') view = photos.filter((p) => reactTotal(p) > 0).sort((a, b) => reactTotal(b) - reactTotal(a));
+    else view = photos;
+    const empty = tab === 'saya' ? ['📷', 'Kamu belum memotret di acara ini.']
+      : tab === 'favorit' ? ['❤️', 'Belum ada foto yang diberi reaksi. Buka foto dan ketuk emoji favoritmu!']
+      : ['🎞️', 'Belum ada foto di album ini. Jadilah yang pertama memotret!'];
+    $('#grid').innerHTML = view.length ? view.map((p, i) => `
+      <button data-i="${i}" data-id="${p.id}" aria-label="Foto oleh ${esc(p.by)}"><img alt=""><span class="counts">${countsHtml(p)}</span></button>`).join('')
+      : (empty ? `<p class="empty-note" style="grid-column:1/-1"><span class="big">${empty[0]}</span>${empty[1]}</p>` : '');
     $$('#grid [data-id]').forEach((el) => thumbs.observe(el));
   }
+  $('#tabs').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-tab]'); if (!b) return;
+    tab = b.dataset.tab;
+    $$('#tabs [data-tab]').forEach((x) => x.setAttribute('aria-selected', x === b));
+    renderGrid();
+  });
 
   function renderTools() {
     const mine = photos.filter((p) => p.mine).length;
@@ -60,9 +83,9 @@
 
   /* ---------- Penampil foto ---------- */
   async function open(i) {
-    if (!photos.length) return;
-    idx = (i + photos.length) % photos.length;
-    const p = photos[idx];
+    if (!view.length) return;
+    idx = (i + view.length) % view.length;
+    const p = view[idx];
     $('#v-img').src = full.get(p.id) || thumbs.get(p.id) || '';
     $('#v-img').alt = `Foto oleh ${p.by}`;
     $('#v-by').textContent = `${p.by} · ${fmtTime(p.t)}`;
@@ -79,8 +102,8 @@
       try {
         const r = await api('photo', { slug, pt: pt(), id: p.id });
         full.set(p.id, r.data);
-        if (photos[idx] === p) { $('#v-img').src = r.data; setDlReady(true); }
-      } catch (err) { if (photos[idx] === p) { setDlReady(false, 'Gagal memuat'); toast(err.message); } }
+        if (view[idx] === p) { $('#v-img').src = r.data; setDlReady(true); }
+      } catch (err) { if (view[idx] === p) { setDlReady(false, 'Gagal memuat'); toast(err.message); } }
     }
   }
   function setDlReady(ok, label) {
@@ -112,7 +135,7 @@
   }
   $('#v-reacts').addEventListener('click', async (e) => {
     const b = e.target.closest('[data-em]'); if (!b || b.disabled) return;
-    const p = photos[idx];
+    const p = view[idx];
     const before = { reactions: { ...p.reactions }, myReaction: p.myReaction };
     const emoji = p.myReaction === b.dataset.em ? '' : b.dataset.em; // ketuk lagi = batalkan
     // perbarui langsung di layar, lalu sinkron dengan server
@@ -126,7 +149,7 @@
     } catch (err) {
       Object.assign(p, before); toast(err.message);
     }
-    if (photos[idx] === p) renderReacts(p);
+    if (view[idx] === p) renderReacts(p);
     refreshCounts(p);
   });
 
@@ -134,7 +157,7 @@
   $('#v-ctoggle').onclick = () => {
     commentsOpen = !commentsOpen;
     $('#v-comments').classList.toggle('hidden', !commentsOpen);
-    if (commentsOpen) loadComments(photos[idx], true);
+    if (commentsOpen) loadComments(view[idx], true);
   };
 
   async function loadComments(p, refresh) {
@@ -144,7 +167,7 @@
     try {
       const r = await api('comments', { slug, pt: pt(), id: p.id });
       commentCache.set(p.id, r.comments);
-      if (photos[idx] === p) renderComments(p);
+      if (view[idx] === p) renderComments(p);
     } catch (err) { $('#c-list').innerHTML = `<p class="v-note">${esc(err.message)}</p>`; }
   }
 
@@ -164,7 +187,7 @@
 
   $('#c-form').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const p = photos[idx], input = $('#c-text'), text = input.value.trim();
+    const p = view[idx], input = $('#c-text'), text = input.value.trim();
     if (!text) return;
     const btn = e.target.querySelector('button'); btn.disabled = true;
     try {
@@ -180,7 +203,7 @@
 
   $('#c-list').addEventListener('click', async (e) => {
     const b = e.target.closest('[data-cact]'); if (!b) return;
-    const cid = b.closest('[data-cid]').dataset.cid, act = b.dataset.cact, p = photos[idx];
+    const cid = b.closest('[data-cid]').dataset.cid, act = b.dataset.cact, p = view[idx];
     try {
       if (act === 'report') {
         if (!confirm('Laporkan komentar ini ke admin?')) return;
@@ -233,7 +256,7 @@
   }
 
   $('#v-dl').onclick = async () => {
-    const p = photos[idx], d = full.get(p.id);
+    const p = view[idx], d = full.get(p.id);
     if (!d) return;
     try { await shareOrSave([dataUrlToFile(d, `${slug}_${p.id.slice(0, 8)}.jpg`)], ''); }
     catch (err) { toast(err.message || 'Gagal mengunduh foto.'); }
@@ -273,7 +296,7 @@
     const reason = prompt('Kenapa foto ini perlu ditinjau admin? (opsional)');
     if (reason === null) return;
     try {
-      const r = await api('report', { slug, pt: pt(), id: photos[idx].id, reason });
+      const r = await api('report', { slug, pt: pt(), id: view[idx].id, reason });
       toast(r.hidden ? 'Foto disembunyikan sambil menunggu tinjauan admin' : 'Laporan terkirim ke admin');
     } catch (err) { toast(err.message); }
   };

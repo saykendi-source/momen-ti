@@ -47,6 +47,7 @@ function screenOf(d) {
 function render(d) {
   info = d;
   const e = d.event, state = d.state;
+  applyAccent(e.accent);
   document.title = e.name;
   $$('.ev-name').forEach((el) => (el.textContent = e.name));
   const manageLink = d.canManage ? '<a class="btn ghost block" href="./">Kelola acara</a>' : '';
@@ -72,6 +73,8 @@ function render(d) {
   renderFilters();
   show('s-cam');
   startCamera();
+  const savedLast = store.get(LAST_KEY);
+  if (savedLast && !$('#last-img').getAttribute('src')) showLast(null, savedLast, false);
   document.fonts?.load('600 40px Caveat').catch(() => {});
   updateCounter();
   if (!camReady) {
@@ -118,6 +121,7 @@ async function init() {
   if (screenOf(fresh) !== shown) render(fresh);
   else {
     info = fresh;
+    if (shown === 'join') showJoin(); // perbarui sampul, warna, dan jumlah peserta
     if (shown === 'cam') {
       quota = fresh.quota || quota;
       $('#album-link').classList.toggle('hidden', !(fresh.state.revealed || fresh.canManage));
@@ -126,8 +130,27 @@ async function init() {
   }
 }
 
+async function loadCover(e) {
+  const img = $('#join-cover');
+  if (!e.cover) { img.classList.add('hidden'); return; }
+  const key = 'momen.cover.' + e.cover;
+  let d = store.get(key);
+  if (!d) {
+    try { d = (await api('cover', { slug })).data; } catch { d = ''; }
+    if (d) { try { store.set(key, d); } catch {} }
+  }
+  if (d && info && info.event.cover === e.cover) { img.src = d; img.classList.remove('hidden'); }
+}
+
 function showJoin() {
   const e = info.event;
+  applyAccent(e.accent);
+  loadCover(e);
+  const ppl = $('#join-people');
+  if (typeof info.people === 'number') {
+    ppl.textContent = info.people > 0 ? `📸 ${info.people} orang sudah ikut memotret` : '📸 Jadilah yang pertama ikut memotret!';
+    ppl.classList.remove('hidden');
+  } else ppl.classList.add('hidden');
   $('#btn-join').disabled = false; $('#btn-join').textContent = 'Mulai memotret';
   $('#join-desc').textContent = `${fmtDate(e.start)} – ${fmtTime(e.end)}${e.description ? '. ' + e.description : ''}`;
   // Admin tidak perlu kode akses.
@@ -198,9 +221,30 @@ window.addEventListener('online', () => sendQueue());
 
 function renderFilters() {
   $('#filters').innerHTML = Object.entries(FILTERS).map(([k, f]) =>
-    `<button type="button" data-f="${k}" aria-pressed="${k === currentFilter}">${f.label}<small>${f.mood}</small></button>`).join('');
+    `<button type="button" data-f="${k}" aria-pressed="${k === currentFilter}" aria-label="Filter ${f.label} (${f.mood})"><canvas width="96" height="96" style="filter:${f.css}"></canvas>${f.label}</button>`).join('');
   $('#video').style.filter = FILTERS[currentFilter].css;
   requestAnimationFrame(() => $('#filters [aria-pressed="true"]')?.scrollIntoView({ inline: 'center', block: 'nearest' }));
+  startPreviews();
+}
+
+// Pratinjau tiap filter: potongan kecil dari kamera diperbarui tiap detik (ringan, tanpa olah piksel).
+let previewTimer = 0;
+function startPreviews() {
+  clearInterval(previewTimer);
+  const draw = () => {
+    const v = $('#video');
+    if (document.hidden || $('#s-cam').classList.contains('hidden') || !v.videoWidth) return;
+    const s = Math.min(v.videoWidth, v.videoHeight), sx = (v.videoWidth - s) / 2, sy = (v.videoHeight - s) / 2;
+    $$('#filters canvas').forEach((c) => {
+      const x = c.getContext('2d');
+      x.save();
+      if (facing === 'user') { x.translate(c.width, 0); x.scale(-1, 1); }
+      x.drawImage(v, sx, sy, s, s, 0, 0, c.width, c.height);
+      x.restore();
+    });
+  };
+  draw();
+  previewTimer = setInterval(draw, 1000);
 }
 $('#filters').addEventListener('click', (e) => {
   const b = e.target.closest('[data-f]'); if (!b) return;
@@ -212,9 +256,14 @@ $('#filters').addEventListener('click', (e) => {
 const unlimited = () => quota.mode === 'bebas';
 const leftNow = () => (unlimited() ? Infinity : Math.max(0, quota.left - pendingCount));
 
+let lastShown = null;
 function updateCounter() {
   const left = leftNow();
-  $('#shots').textContent = unlimited() ? '∞' : left;
+  const txt = unlimited() ? '∞' : String(left);
+  const el = $('#shots');
+  if (lastShown !== null && lastShown !== txt) { el.classList.remove('tick'); void el.offsetWidth; el.classList.add('tick'); }
+  lastShown = txt;
+  el.textContent = txt;
   $('#shots-label').textContent = unlimited() ? 'tanpa batas' : quota.mode === 'harian' ? 'sisa hari ini' : quota.mode === 'rol' ? 'sisa di rol' : 'sisa foto';
   $('#shutter').disabled = left <= 0;
   $('#shutter').setAttribute('aria-label', left <= 0 ? 'Jatah foto habis' : 'Ambil foto');
@@ -273,9 +322,13 @@ $('#shutter').addEventListener('click', async () => {
   navigator.vibrate?.(30);
   try {
     const takenAt = Date.now();
-    const full = await renderPhoto(v, takenAt);
+    const work = capturePhoto(v);
+    await document.fonts?.load('600 40px Caveat').catch(() => {});
+    const caption = info.event.captions ? await askCaption(work, takenAt) : '';
+    const full = composePhoto(work, takenAt, caption);
     const thumb = await makeThumb(full);
-    await Queue.add({ id: crypto.randomUUID ? crypto.randomUUID() : String(takenAt) + Math.random(), slug, filter: currentFilter, takenAt, image: full.data, thumb });
+    showLast(full.data, thumb, true);
+    await Queue.add({ id: crypto.randomUUID ? crypto.randomUUID() : String(takenAt) + Math.random(), slug, filter: currentFilter, takenAt, image: full.data, thumb, caption });
     await refreshPending();
     updateCounter();
     sendQueue();
@@ -287,16 +340,46 @@ $('#shutter').addEventListener('click', async () => {
   }
 });
 
-/** Frame video → potong → filter → bingkai → JPEG (data URL). */
-async function renderPhoto(v, takenAt) {
-  const e = info.event;
-  const polaroid = e.frame === 'polaroid';
+/* ---------- Foto terakhir di pojok ---------- */
+let lastFull = null;
+const LAST_KEY = 'momen.last.' + slug;
+function showLast(fullData, thumb, animate) {
+  lastFull = fullData;
+  const btn = $('#last'), img = $('#last-img');
+  const set = () => { img.src = thumb; img.classList.remove('hidden'); btn.disabled = false; };
+  store.set(LAST_KEY, thumb);
+  if (!animate || matchMedia('(prefers-reduced-motion: reduce)').matches) return set();
+  // Foto "terbang" dari tengah jendela bidik ke tombol di pojok kiri bawah.
+  const fly = $('#fly'), vf = $('#vf').getBoundingClientRect(), tb = btn.getBoundingClientRect();
+  fly.src = thumb; fly.classList.remove('hidden');
+  fly.style.transition = 'none'; fly.style.transform = 'translate(-50%, -50%)'; fly.style.opacity = '1';
+  void fly.offsetWidth;
+  const dx = tb.left + tb.width / 2 - (vf.left + vf.width / 2), dy = tb.top + tb.height / 2 - (vf.top + vf.height / 2);
+  const scale = tb.width / fly.getBoundingClientRect().width;
+  fly.style.transition = 'transform .55s cubic-bezier(.5,0,.2,1), opacity .55s';
+  fly.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px)) scale(${scale})`;
+  setTimeout(() => { fly.classList.add('hidden'); set(); }, 560);
+}
+$('#last').addEventListener('click', () => {
+  const src = lastFull || $('#last-img').src;
+  if (!src) return;
+  $('#last-full').src = src;
+  const open = info && info.state && (info.state.revealed || info.canManage);
+  $('#last-album').classList.toggle('hidden', !open);
+  $('#last-album').href = `album.html?e=${encodeURIComponent(slug)}`;
+  $('#last-note').textContent = open ? 'Foto ini sudah masuk ke album acara.' : 'Foto ini tersimpan di album dan akan terlihat saat album dibuka.';
+  $('#last-view').classList.remove('hidden');
+});
+$('#last-close').onclick = () => $('#last-view').classList.add('hidden');
+
+/** Ambil frame video → potong → filter film. Mengembalikan kanvas foto (tanpa bingkai). */
+function capturePhoto(v) {
+  const polaroid = info.event.frame === 'polaroid';
   const vw = v.videoWidth, vh = v.videoHeight;
   let sx = 0, sy = 0, sw = vw, sh = vh;
   if (polaroid) { const s = Math.min(vw, vh); sx = (vw - s) / 2; sy = (vh - s) / 2; sw = sh = s; }
   const scale = Math.min(1, (polaroid ? 1600 : 2048) / Math.max(sw, sh));
   const pw = Math.round(sw * scale), ph = Math.round(sh * scale);
-
   const work = document.createElement('canvas');
   work.width = pw; work.height = ph;
   const wctx = work.getContext('2d', { willReadFrequently: true });
@@ -304,24 +387,88 @@ async function renderPhoto(v, takenAt) {
   wctx.drawImage(v, sx, sy, sw, sh, 0, 0, pw, ph);
   wctx.setTransform(1, 0, 0, 1, 0, 0);
   applyFilter(wctx, pw, ph, currentFilter);
-  if (!polaroid) return { canvas: work, data: work.toDataURL('image/jpeg', 0.86) };
+  return work;
+}
 
+function fitText(ctx, text, maxW) {
+  let t = text;
+  if (ctx.measureText(t).width <= maxW) return t;
+  while (t.length > 3 && ctx.measureText(t + '…').width > maxW) t = t.slice(0, -1);
+  return t + '…';
+}
+
+/** Pasang bingkai (polaroid atau polos) beserta kata di bingkai bila ada. */
+function composePhoto(work, takenAt, caption, quality = 0.86) {
+  const e = info.event, pw = work.width, ph = work.height;
+  const stamp = new Date(takenAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+  const who = info.me ? info.me.name : '';
+  const out = document.createElement('canvas');
+  if (e.frame !== 'polaroid') {
+    out.width = pw; out.height = ph;
+    const ctx = out.getContext('2d');
+    ctx.drawImage(work, 0, 0);
+    if (caption) {
+      // Foto polos: kata ditulis di bagian bawah foto dengan bayangan lembut.
+      const g = ctx.createLinearGradient(0, ph * 0.7, 0, ph);
+      g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,.55)');
+      ctx.fillStyle = g; ctx.fillRect(0, ph * 0.7, pw, ph * 0.3);
+      ctx.font = `600 ${Math.round(Math.min(pw, ph) * 0.07)}px Caveat, cursive`;
+      ctx.fillStyle = '#FFFFFF'; ctx.textBaseline = 'alphabetic';
+      ctx.fillText(fitText(ctx, caption, pw * 0.9), pw * 0.05, ph - Math.min(pw, ph) * 0.06);
+    }
+    return { canvas: out, data: out.toDataURL('image/jpeg', quality) };
+  }
   const side = Math.round(pw * 0.06), bottom = Math.round(pw * 0.24);
-  const out = $('#canvas');
   out.width = pw + side * 2; out.height = ph + side + bottom;
   const ctx = out.getContext('2d');
   ctx.fillStyle = '#FBFBF8'; ctx.fillRect(0, 0, out.width, out.height);
   ctx.drawImage(work, side, side);
-  ctx.fillStyle = '#2B2B2B'; ctx.textBaseline = 'middle';
+  ctx.textBaseline = 'middle';
+  // Baris besar: kata dari peserta, atau nama acara bila tidak ada kata.
+  ctx.fillStyle = '#2B2B2B';
   ctx.font = `600 ${Math.round(pw * 0.07)}px Caveat, cursive`;
-  let title = e.name;
-  while (title.length > 3 && ctx.measureText(title).width > pw) title = title.slice(0, -2) + '…';
-  ctx.fillText(title, side, ph + side + bottom * 0.42);
+  ctx.fillText(fitText(ctx, caption || e.name, pw), side, ph + side + bottom * 0.42);
+  // Baris kecil: (nama acara ·) tanggal · nama pemotret.
   ctx.font = `600 ${Math.round(pw * 0.038)}px Caveat, cursive`;
   ctx.fillStyle = '#6A6A6A';
-  const stamp = new Date(takenAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
-  ctx.fillText(`${stamp} · ${info.me ? info.me.name : ''}`, side, ph + side + bottom * 0.72);
-  return { canvas: out, data: out.toDataURL('image/jpeg', 0.86) };
+  const tail = `${stamp} · ${who}`;
+  const small = caption ? `${fitText(ctx, e.name, pw * 0.5)} · ${tail}` : tail;
+  ctx.fillText(fitText(ctx, small, pw), side, ph + side + bottom * 0.72);
+  return { canvas: out, data: out.toDataURL('image/jpeg', quality) };
+}
+
+/* ---------- Lembar "Tulis sesuatu di bingkai" ---------- */
+// Mengembalikan teks (bisa kosong) setelah peserta menekan Simpan/Lewati.
+function askCaption(work, takenAt) {
+  return new Promise((resolve) => {
+    const sheet = $('#cap-sheet'), input = $('#cap-text');
+    const presets = info.event.captionPresets || [];
+    $('#cap-presets').innerHTML = presets.map((p) => `<button type="button" data-p="${esc(p)}">${esc(p)}</button>`).join('');
+    input.value = '';
+    let timer = 0;
+    const preview = () => {
+      const t = input.value.trim();
+      $('#cap-count').textContent = `${input.value.length}/${CAPTION_MAX}`;
+      const prob = captionProblem(t);
+      showMsg($('#cap-err'), prob);
+      $('#cap-save').disabled = !!prob;
+      clearTimeout(timer);
+      timer = setTimeout(() => { $('#cap-preview').src = composePhoto(work, takenAt, prob ? '' : t, 0.7).data; }, 120);
+    };
+    const done = (text) => {
+      sheet.classList.add('hidden');
+      input.removeEventListener('input', preview);
+      $('#cap-presets').onclick = null; $('#cap-save').onclick = null; $('#cap-skip').onclick = null; input.onkeydown = null;
+      resolve(text);
+    };
+    input.addEventListener('input', preview);
+    $('#cap-presets').onclick = (e) => { const b = e.target.closest('[data-p]'); if (b) { input.value = b.dataset.p.slice(0, CAPTION_MAX); preview(); } };
+    $('#cap-save').onclick = () => { const t = input.value.replace(/\s+/g, ' ').trim(); if (!captionProblem(t)) done(t); };
+    $('#cap-skip').onclick = () => done('');
+    input.onkeydown = (e) => { if (e.key === 'Enter') { e.preventDefault(); $('#cap-save').click(); } };
+    sheet.classList.remove('hidden');
+    preview();
+  });
 }
 
 async function makeThumb(full) {
@@ -348,7 +495,7 @@ async function sendQueue() {
       if (!items.length) break;
       const it = items[0];
       try {
-        const r = await api('upload', { slug, pt: PT.get(slug), image: it.image, thumb: it.thumb, filter: it.filter, takenAt: it.takenAt });
+        const r = await api('upload', { slug, pt: PT.get(slug), image: it.image, thumb: it.thumb, filter: it.filter, takenAt: it.takenAt, caption: it.caption || '' });
         await Queue.remove(it.id);
         if (r.quota) quota = r.quota; else quota.left = r.shotsLeft;
         delay = 4000;

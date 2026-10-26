@@ -44,6 +44,20 @@ function eventFormHtml(e = {}) {
         <select id="f-frame" name="frame">${opt('polaroid', frame, 'Polaroid dengan nama acara')}${opt('polos', frame, 'Polos, tanpa bingkai')}</select></div>
     </div>
     <div class="field">
+      <span class="label-like">Warna acara <span class="hint">Dipakai untuk tombol, penghitung, dan poster</span></span>
+      <div class="swatches" role="radiogroup" aria-label="Warna acara">
+        ${ACCENTS.map(([hex, name], i) => `<label title="${name}"><input type="radio" name="accent" value="${hex}" ${(e.accent || ACCENTS[0][0]) === hex ? 'checked' : ''}><span style="background:${hex}"></span><em>${name}</em></label>`).join('')}
+      </div>
+    </div>
+    <div class="field">
+      <label class="check"><input type="checkbox" name="captions" ${e.captions ? 'checked' : ''}> Izinkan peserta menulis kata di bingkai foto</label>
+      <span class="hint">Satu baris pendek (maks 40 karakter) di bawah foto polaroid, diisi setelah memotret. Kata kasar otomatis ditolak.</span>
+      <div class="cap-presets-field ${e.captions ? '' : 'hidden'}" style="margin-top:.6rem">
+        <label for="f-capp">Contoh kata siap pakai <span class="hint">Satu per baris, maks 10. Kosongkan untuk memakai contoh bawaan.</span></label>
+        <textarea id="f-capp" name="captionPresets" rows="4" placeholder="Belajar hari ini, sukses esok hari&#10;Ngoding bareng, sukses bareng&#10;Error itu biasa, menyerah jangan">${esc((e.captionPresetsCustom || []).join('\n'))}</textarea>
+      </div>
+    </div>
+    <div class="field">
       <label class="check"><input type="checkbox" name="comments" ${e.comments ? 'checked' : ''}> Izinkan peserta berkomentar di album</label>
       <span class="hint">Komentar disaring dari kata kasar, bisa dilaporkan peserta, dan bisa disembunyikan admin. Reaksi emoji selalu aktif.</span>
     </div>
@@ -57,6 +71,8 @@ function maxLabel(mode) {
 function bindEventForm(form) {
   const sel = form.querySelector('[name=reveal]');
   sel.addEventListener('change', () => form.querySelector('.reveal-at').classList.toggle('hidden', sel.value !== 'jadwal'));
+  const cap = form.querySelector('[name=captions]');
+  cap.addEventListener('change', () => form.querySelector('.cap-presets-field').classList.toggle('hidden', !cap.checked));
   const q = form.querySelector('[name=quotaMode]');
   q.addEventListener('change', () => {
     form.querySelector('.q-max').classList.toggle('hidden', q.value === 'bebas');
@@ -91,5 +107,8 @@ function readEventForm(form) {
     filter: v('filter'),
     frame: v('frame'),
     comments: form.querySelector('[name=comments]').checked,
+    captions: form.querySelector('[name=captions]').checked,
+    captionPresets: form.querySelector('[name=captionPresets]').value,
+    accent: form.querySelector('[name=accent]:checked')?.value || ACCENTS[0][0],
   };
 }

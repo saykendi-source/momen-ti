@@ -30,3 +30,20 @@ function setupWarning() {
 // Safari iPhone sering memulihkan halaman dari keadaan "beku" (back-forward cache) dengan permintaan
 // yang sudah terputus, sehingga layar tertahan di "Memuat…". Muat ulang halaman agar data diambil lagi.
 window.addEventListener('pageshow', (e) => { if (e.persisted) location.reload(); });
+
+// ---------- Warna acara ----------
+const ACCENTS = [['#1A9BA1', 'Toska'], ['#F2A93B', 'Oranye'], ['#E0524A', 'Merah'], ['#3B7BE0', 'Biru'], ['#8A5CD6', 'Ungu'], ['#2FA36B', 'Hijau'], ['#E0558F', 'Merah muda']];
+function inkFor(hex) {
+  const n = parseInt(String(hex).slice(1), 16);
+  const l = 0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255);
+  return l > 150 ? '#14110A' : '#FFFFFF';
+}
+// Terapkan warna acara ke tombol utama, penghitung, dan aksen lain di halaman ini.
+function applyAccent(hex) {
+  if (!/^#[0-9a-f]{6}$/i.test(hex || '')) return;
+  // Dipasang di <html> dan <body>, karena halaman kamera menetapkan warna bawaan di <body>.
+  [document.documentElement.style, document.body.style].forEach((st) => {
+    st.setProperty('--accent', hex); st.setProperty('--accent-ink', inkFor(hex));
+    st.setProperty('--event', hex); st.setProperty('--event-ink', inkFor(hex));
+  });
+}
