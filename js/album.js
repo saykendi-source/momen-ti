@@ -49,8 +49,9 @@
     const empty = tab === 'saya' ? ['📷', 'Kamu belum memotret di acara ini.']
       : tab === 'favorit' ? ['❤️', 'Belum ada foto yang diberi reaksi. Buka foto dan ketuk emoji favoritmu!']
       : ['🎞️', 'Belum ada foto di album ini. Jadilah yang pertama memotret!'];
+    const fresh = data.joined ? newPhotoIds() : new Set();
     $('#grid').innerHTML = view.length ? view.map((p, i) => `
-      <button data-i="${i}" data-id="${p.id}" aria-label="Foto oleh ${esc(p.by)}"><img alt=""><span class="counts">${countsHtml(p)}</span></button>`).join('')
+      <button data-i="${i}" data-id="${p.id}" class="${fresh.has(p.id) ? 'has-new' : ''}" aria-label="Foto oleh ${esc(p.by)}${fresh.has(p.id) ? ', ada aktivitas baru' : ''}"><img alt=""><span class="counts">${countsHtml(p)}</span></button>`).join('')
       : (empty ? `<p class="empty-note" style="grid-column:1/-1"><span class="big">${empty[0]}</span>${empty[1]}</p>` : '');
     $$('#grid [data-id]').forEach((el) => thumbs.observe(el));
   }
@@ -61,13 +62,53 @@
     renderGrid();
   });
 
+  /* ---------- Aktivitas di foto milik sendiri ---------- */
+  const SEEN_KEY = 'momen.act.' + slug;
+  const seenAt = () => store.get(SEEN_KEY) || '';
+  const newItems = () => (data.activity || []).filter((a) => a.t > seenAt());
+  const newPhotoIds = () => new Set(newItems().map((a) => a.photoId));
+
+  function actText(a) {
+    if (a.type === 'comment') return `<b>${esc(a.name)}</b> berkomentar: “${esc(a.text)}”`;
+    const em = Object.entries(a.emojis).sort((x, y) => y[1] - x[1]).map(([e]) => e).join('');
+    return `<b>${a.count} orang</b> memberi reaksi ${em}`;
+  }
+  function openActivity() {
+    const items = data.activity || [], seen = seenAt();
+    $('#act-list').innerHTML = items.length ? items.map((a, i) => {
+      const p = photos.find((x) => x.id === a.photoId);
+      return `<li><button type="button" data-ai="${i}" class="${a.t > seen ? 'is-new' : ''}">
+        <span class="act-thumb">${p ? `<img src="${thumbs.get(p.id) || ''}" alt="">` : ''}</span>
+        <span class="act-txt">${actText(a)}<small>${fmtDate(a.t)}</small></span></button></li>`;
+    }).join('') : '<li class="muted" style="padding:1rem 0">Belum ada aktivitas di fotomu.</li>';
+    $('#act-dlg').showModal();
+    if (items.length) store.set(SEEN_KEY, items[0].t); // tandai sudah dilihat (memakai waktu server)
+    renderTools();
+    $$('#grid .has-new').forEach((el) => el.classList.remove('has-new'));
+  }
+  $('#act-close').onclick = () => $('#act-dlg').close();
+  $('#act-dlg').addEventListener('click', (e) => {
+    if (e.target === $('#act-dlg')) return $('#act-dlg').close();
+    const b = e.target.closest('[data-ai]'); if (!b) return;
+    const a = data.activity[+b.dataset.ai];
+    $('#act-dlg').close();
+    if (tab !== 'semua') { tab = 'semua'; $$('#tabs [data-tab]').forEach((x) => x.setAttribute('aria-selected', x.dataset.tab === 'semua')); renderGrid(); }
+    const i = view.findIndex((p) => p.id === a.photoId);
+    if (i < 0) return toast('Foto ini sudah tidak tersedia.');
+    if (a.type === 'comment' && data.event.comments) commentsOpen = true;
+    open(i);
+  });
+
   function renderTools() {
     const mine = photos.filter((p) => p.mine).length;
+    const n = data.joined ? newItems().length : 0;
     $('#tools').innerHTML =
+      (data.joined ? `<button class="btn ghost small" id="btn-act">🔔 Aktivitas${n ? `<span class="count-badge">${n}</span>` : ''}</button>` : '') +
       (mine ? `<button class="btn small" id="dl-mine">Unduh foto saya (${mine})</button>` : '') +
       (data.folderUrl ? `<a class="btn ghost small" href="${esc(data.folderUrl)}" target="_blank" rel="noopener">Folder Drive (unduh semua)</a>` : '') +
       '<button class="btn ghost small" id="btn-fb">💬 Beri masukan</button>';
     $('#dl-mine')?.addEventListener('click', downloadMine);
+    $('#btn-act')?.addEventListener('click', openActivity);
     $('#btn-fb').onclick = () => Feedback.open({ slug, page: 'album' });
   }
 
@@ -90,6 +131,7 @@
     $('#v-img').alt = `Foto oleh ${p.by}`;
     $('#v-by').textContent = `${p.by} · ${fmtTime(p.t)}`;
     $('#v-report').classList.toggle('hidden', !!p.mine || !data.joined);
+    $('#v-del').classList.toggle('hidden', !p.mine);
     renderReacts(p);
     const commentsOn = data.event.comments;
     $('#v-ctoggle').classList.toggle('hidden', !commentsOn);
@@ -290,6 +332,23 @@
     }
     btn.disabled = false;
   }
+
+  /* ---------- Hapus foto sendiri ---------- */
+  $('#v-del').onclick = async () => {
+    const p = view[idx];
+    if (!confirm('Hapus foto ini? Foto tidak bisa dikembalikan, dan jatah foto tidak bertambah.')) return;
+    const b = $('#v-del'); b.disabled = true;
+    try {
+      await api('deleteMine', { slug, pt: pt(), id: p.id });
+      photos = photos.filter((x) => x.id !== p.id);
+      data.activity = (data.activity || []).filter((a) => a.photoId !== p.id);
+      $('#viewer').close();
+      $('#sub').textContent = photos.length ? `${photos.length} foto` : 'Belum ada foto di album ini.';
+      renderTools(); renderGrid();
+      toast('Foto dihapus');
+    } catch (err) { toast(err.message); }
+    b.disabled = false;
+  };
 
   /* ---------- Laporkan foto ---------- */
   $('#v-report').onclick = async () => {

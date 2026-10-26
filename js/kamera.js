@@ -79,6 +79,8 @@ function render(d) {
   updateCounter();
   if (!camReady) {
     camReady = true;
+    setTimeout(checkActivity, 2500);
+    actTimer = setInterval(checkActivity, 120000);
     refreshPending().then(() => { updateCounter(); sendQueue(); });
     clearInterval(quotaTimer);
     quotaTimer = setInterval(checkQuota, 30000);
@@ -215,7 +217,7 @@ function stopCamera() { stream?.getTracks().forEach((t) => t.stop()); stream = n
 $('#flip').onclick = () => { facing = facing === 'user' ? 'environment' : 'user'; startCamera(); };
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) stopCamera();
-  else if (!$('#s-cam').classList.contains('hidden')) { startCamera(); sendQueue(); checkQuota(true); }
+  else if (!$('#s-cam').classList.contains('hidden')) { startCamera(); sendQueue(); checkQuota(true); checkActivity(); }
 });
 window.addEventListener('online', () => sendQueue());
 
@@ -328,7 +330,9 @@ $('#shutter').addEventListener('click', async () => {
     const full = composePhoto(work, takenAt, caption);
     const thumb = await makeThumb(full);
     showLast(full.data, thumb, true);
-    await Queue.add({ id: crypto.randomUUID ? crypto.randomUUID() : String(takenAt) + Math.random(), slug, filter: currentFilter, takenAt, image: full.data, thumb, caption });
+    const qid = crypto.randomUUID ? crypto.randomUUID() : String(takenAt) + Math.random();
+    lastQueueId = qid; lastServerId = ''; store.del(LAST_ID_KEY);
+    await Queue.add({ id: qid, slug, filter: currentFilter, takenAt, image: full.data, thumb, caption });
     await refreshPending();
     updateCounter();
     sendQueue();
@@ -341,8 +345,8 @@ $('#shutter').addEventListener('click', async () => {
 });
 
 /* ---------- Foto terakhir di pojok ---------- */
-let lastFull = null;
-const LAST_KEY = 'momen.last.' + slug;
+let lastFull = null, lastQueueId = '', lastServerId = '';
+const LAST_KEY = 'momen.last.' + slug, LAST_ID_KEY = 'momen.lastid.' + slug;
 function showLast(fullData, thumb, animate) {
   lastFull = fullData;
   const btn = $('#last'), img = $('#last-img');
@@ -367,9 +371,37 @@ $('#last').addEventListener('click', () => {
   const open = info && info.state && (info.state.revealed || info.canManage);
   $('#last-album').classList.toggle('hidden', !open);
   $('#last-album').href = `album.html?e=${encodeURIComponent(slug)}`;
-  $('#last-note').textContent = open ? 'Foto ini sudah masuk ke album acara.' : 'Foto ini tersimpan di album dan akan terlihat saat album dibuka.';
+  lastServerId = lastServerId || store.get(LAST_ID_KEY) || '';
+  const sent = !!lastServerId;
+  $('#last-note').textContent = !sent ? 'Foto ini sedang dikirim ke album…'
+    : open ? 'Foto ini sudah masuk ke album acara.' : 'Foto ini tersimpan di album dan akan terlihat saat album dibuka.';
+  $('#last-del').disabled = !sent;
+  $('#last-del').textContent = sent ? 'Hapus foto ini' : 'Sedang dikirim…';
   $('#last-view').classList.remove('hidden');
 });
+$('#last-del').addEventListener('click', async () => {
+  if (!lastServerId) return;
+  if (!confirm('Hapus foto ini? Foto tidak bisa dikembalikan, dan jatah foto tidak bertambah.')) return;
+  const b = $('#last-del'); b.disabled = true;
+  try {
+    await api('deleteMine', { slug, pt: PT.get(slug), id: lastServerId });
+    lastFull = null; lastServerId = ''; store.del(LAST_KEY); store.del(LAST_ID_KEY);
+    $('#last-img').classList.add('hidden'); $('#last-img').removeAttribute('src'); $('#last').disabled = true;
+    $('#last-view').classList.add('hidden');
+    toast('Foto dihapus');
+  } catch (err) { toast(err.message); b.disabled = false; }
+});
+
+/* ---------- Titik merah di tombol Album bila ada aktivitas baru di foto kita ---------- */
+let actTimer = 0;
+async function checkActivity() {
+  if (!info || !info.state || !info.state.revealed || document.hidden || $('#s-cam').classList.contains('hidden')) return;
+  try {
+    const r = await api('activity', { slug, pt: PT.get(slug) });
+    const seen = store.get('momen.act.' + slug) || '';
+    $('#album-link').classList.toggle('has-dot', r.items.some((a) => a.t > seen));
+  } catch {}
+}
 $('#last-close').onclick = () => $('#last-view').classList.add('hidden');
 
 /** Ambil frame video → potong → filter film. Mengembalikan kanvas foto (tanpa bingkai). */
@@ -497,6 +529,7 @@ async function sendQueue() {
       try {
         const r = await api('upload', { slug, pt: PT.get(slug), image: it.image, thumb: it.thumb, filter: it.filter, takenAt: it.takenAt, caption: it.caption || '' });
         await Queue.remove(it.id);
+        if (it.id === lastQueueId) { lastServerId = r.id; store.set(LAST_ID_KEY, r.id); }
         if (r.quota) quota = r.quota; else quota.left = r.shotsLeft;
         delay = 4000;
         toast('Foto tersimpan di album');

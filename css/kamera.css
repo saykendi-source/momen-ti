@@ -116,3 +116,7 @@ body.cam .msg { background: rgba(224,103,92,.15); color: #F09A91; }
 .cap-err { margin: 0; font-size: .85rem; color: #F09A91; }
 .cap-actions { display: grid; grid-template-columns: 1fr 2fr; gap: .6rem; }
 .cap-actions .btn { width: 100%; }
+
+/* ===== v10 ===== */
+#album-link { position: relative; }
+#album-link.has-dot::after { content: ""; position: absolute; top: -3px; right: -3px; width: 11px; height: 11px; border-radius: 50%; background: #E0524A; box-shadow: 0 0 0 2px #0A0C10; }
