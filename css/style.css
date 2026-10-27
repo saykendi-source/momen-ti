@@ -252,3 +252,15 @@ form textarea, .field textarea { width: 100%; font: inherit; color: var(--ink); 
 main.wrap { padding-bottom: 5.5rem; }
 dialog.viewer .viewer-bar .btn { white-space: nowrap; }
 dialog.viewer .viewer-bar .btn span { font-size: 1.2rem; line-height: 1; }
+
+/* ===== v12: Album per hari ===== */
+.day-chips { display: flex; gap: .4rem; overflow-x: auto; scrollbar-width: none; margin: -.25rem 0 1rem; padding: .1rem; }
+.day-chips::-webkit-scrollbar { display: none; }
+.day-chips button { flex: 0 0 auto; font: inherit; font-size: .85rem; font-weight: 600; color: var(--ink); background: var(--surface); border: 1.5px solid var(--line); border-radius: 999px; padding: .35rem .8rem; cursor: pointer; white-space: nowrap; }
+.day-chips button span { color: var(--muted); font-weight: 500; margin-left: .2rem; }
+.day-chips button[aria-selected="true"] { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--surface)); }
+.photo-grid .day-head { grid-column: 1 / -1; position: sticky; top: 0; z-index: 2; margin: .75rem 0 .1rem; padding: .55rem .1rem; font-size: 1rem; background: var(--paper); display: flex; justify-content: space-between; align-items: baseline; gap: .5rem; }
+.photo-grid .day-head:first-child { margin-top: 0; }
+.photo-grid .day-head span { font-size: .82rem; font-weight: 500; color: var(--muted); }
+.photo-grid .more-btn { aspect-ratio: auto; display: block; text-align: center; grid-column: 1 / -1; font: inherit; font-weight: 700; font-size: .9rem; color: var(--accent); background: transparent; border: 1.5px dashed var(--line); border-radius: 10px; padding: .7rem; cursor: pointer; margin-bottom: .5rem; }
+.photo-grid .more-btn:hover { border-color: var(--accent); }

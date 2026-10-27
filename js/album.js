@@ -62,22 +62,85 @@
     // Efek "cuci film" hanya saat pertama kali album yang sudah dibuka dilihat di HP ini.
     const devKey = 'momen.dev.' + slug;
     if (data.revealed && photos.length && !store.get(devKey)) { $('#grid').classList.add('develop'); store.set(devKey, '1'); }
+    setupDays();
     renderGrid();
   }
 
+  /* ---------- Pengelompokan per hari ---------- */
+  const PER_DAY = 12; // di tampilan "Semua hari", tiap hari hanya menampilkan sekian foto pertama
+  const dayKey = (iso) => new Date(iso).toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' }); // YYYY-MM-DD (WIB)
+  const dayLabel = (key, long) => new Date(key + 'T12:00:00+07:00').toLocaleDateString('id-ID',
+    long ? { weekday: 'long', day: 'numeric', month: 'long' } : { weekday: 'short', day: 'numeric', month: 'short' });
+  let days = [], day = null, daysReady = false; // day = null berarti "Semua hari"
+
+  // Saat acara berlangsung, foto terbaru di atas. Setelah selesai, urut dari awal acara.
+  const newestFirst = () => !!(data && data.cameraOpen);
+  const byTime = (a, b) => (newestFirst() ? (a.t < b.t ? 1 : -1) : (a.t < b.t ? -1 : 1));
+
+  function setupDays() {
+    days = [...new Set(photos.map((p) => dayKey(p.t)))].sort();
+    if (!daysReady) { day = days.length > 1 ? days[days.length - 1] : null; daysReady = true; } // bawaan: hari terakhir
+    if (day && !days.includes(day)) day = days.length > 1 ? days[days.length - 1] : null;
+    renderDayChips();
+  }
+  function renderDayChips() {
+    const el = $('#days');
+    el.classList.toggle('hidden', days.length < 2);
+    if (days.length < 2) return;
+    const count = (k) => photos.filter((p) => dayKey(p.t) === k).length;
+    const order = newestFirst() ? [...days].reverse() : days;
+    el.innerHTML = `<button role="tab" data-day="" aria-selected="${day === null}">Semua hari</button>` +
+      order.map((k) => `<button role="tab" data-day="${k}" aria-selected="${day === k}">Hari ${days.indexOf(k) + 1} · ${dayLabel(k)} <span>${count(k)}</span></button>`).join('');
+    el.querySelector('[aria-selected="true"]')?.scrollIntoView({ inline: 'center', block: 'nearest' });
+  }
+  $('#days').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-day]'); if (!b) return;
+    day = b.dataset.day || null;
+    renderDayChips(); renderGrid();
+  });
+
+  function tile(p, i, fresh) {
+    return `<button data-i="${i}" data-id="${p.id}" class="${fresh.has(p.id) ? 'has-new' : ''}" aria-label="Foto oleh ${esc(p.by)}${fresh.has(p.id) ? ', ada aktivitas baru' : ''}"><img alt=""><span class="counts">${countsHtml(p)}</span></button>`;
+  }
+
   function renderGrid() {
-    if (tab === 'saya') view = photos.filter((p) => p.mine);
-    else if (tab === 'favorit') view = photos.filter((p) => reactTotal(p) > 0).sort((a, b) => reactTotal(b) - reactTotal(a));
-    else view = photos;
+    // 1) Saring menurut tab
+    let base;
+    if (tab === 'saya') base = photos.filter((p) => p.mine).sort(byTime);
+    else if (tab === 'favorit') base = photos.filter((p) => reactTotal(p) > 0).sort((a, b) => reactTotal(b) - reactTotal(a));
+    else base = [...photos].sort(byTime);
     const empty = tab === 'saya' ? ['📷', 'Kamu belum memotret di acara ini.']
       : tab === 'favorit' ? ['❤️', 'Belum ada foto yang diberi reaksi. Buka foto dan ketuk emoji favoritmu!']
       : ['🎞️', 'Belum ada foto di album ini. Jadilah yang pertama memotret!'];
     const fresh = data.joined ? newPhotoIds() : new Set();
-    $('#grid').innerHTML = view.length ? view.map((p, i) => `
-      <button data-i="${i}" data-id="${p.id}" class="${fresh.has(p.id) ? 'has-new' : ''}" aria-label="Foto oleh ${esc(p.by)}${fresh.has(p.id) ? ', ada aktivitas baru' : ''}"><img alt=""><span class="counts">${countsHtml(p)}</span></button>`).join('')
-      : (empty ? `<p class="empty-note" style="grid-column:1/-1"><span class="big">${empty[0]}</span>${empty[1]}</p>` : '');
+    let html = '';
+
+    if (days.length > 1 && day === null) {
+      // 2a) Semua hari: dikelompokkan, tiap hari maksimal PER_DAY foto + tombol "Lihat semua"
+      view = [];
+      const order = newestFirst() ? [...days].reverse() : days;
+      order.forEach((k) => {
+        const list = base.filter((p) => dayKey(p.t) === k);
+        if (!list.length) return;
+        const shown = list.slice(0, PER_DAY);
+        html += `<h2 class="day-head">Hari ${days.indexOf(k) + 1} · ${dayLabel(k, true)} <span>${list.length} foto</span></h2>`;
+        html += shown.map((p) => tile(p, view.push(p) - 1, fresh)).join('');
+        if (list.length > shown.length) html += `<button class="more-btn" data-goday="${k}">Lihat semua ${list.length} foto hari ini ›</button>`;
+      });
+    } else {
+      // 2b) Satu hari tertentu (atau acara satu hari): semua foto
+      view = day ? base.filter((p) => dayKey(p.t) === day) : base;
+      html = view.map((p, i) => tile(p, i, fresh)).join('');
+    }
+    const emptyMsg = day && tab === 'semua' ? ['🗓️', 'Belum ada foto di hari ini.'] : empty;
+    $('#grid').innerHTML = view.length ? html : `<p class="empty-note" style="grid-column:1/-1"><span class="big">${emptyMsg[0]}</span>${emptyMsg[1]}</p>`;
     $$('#grid [data-id]').forEach((el) => thumbs.observe(el));
   }
+  $('#grid').addEventListener('click', (e) => {
+    const m = e.target.closest('[data-goday]'); if (!m) return;
+    day = m.dataset.goday; renderDayChips(); renderGrid();
+    window.scrollTo({ top: $('#days').offsetTop - 12, behavior: 'smooth' });
+  });
   $('#tabs').addEventListener('click', (e) => {
     const b = e.target.closest('[data-tab]'); if (!b) return;
     tab = b.dataset.tab;
@@ -117,7 +180,11 @@
     $('#act-dlg').close(); // riwayat dipakai ulang untuk penampil foto
     if (history.state && history.state.layer === 'act-dlg') history.replaceState({ layer: 'viewer' }, '');
     if (tab !== 'semua') { tab = 'semua'; $$('#tabs [data-tab]').forEach((x) => x.setAttribute('aria-selected', x.dataset.tab === 'semua')); renderGrid(); }
-    const i = view.findIndex((p) => p.id === a.photoId);
+    let i = view.findIndex((p) => p.id === a.photoId);
+    if (i < 0) {
+      const ph = photos.find((p) => p.id === a.photoId);
+      if (ph && days.length > 1) { day = dayKey(ph.t); renderDayChips(); renderGrid(); i = view.findIndex((p) => p.id === a.photoId); }
+    }
     if (i < 0) return toast('Foto ini sudah tidak tersedia.');
     if (a.type === 'comment' && data.event.comments) commentsOpen = true;
     open(i);
@@ -379,7 +446,7 @@
       data.activity = (data.activity || []).filter((a) => a.photoId !== p.id);
       closeLayer($('#viewer'));
       $('#sub').textContent = photos.length ? `${photos.length} foto` : 'Belum ada foto di album ini.';
-      renderTools(); renderGrid();
+      renderTools(); setupDays(); renderGrid();
       toast('Foto dihapus');
     } catch (err) { toast(err.message); }
     b.disabled = false;

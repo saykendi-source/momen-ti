@@ -1,4 +1,4 @@
-# Momen TI — versi tanpa login (admin + tamu) · v11
+# Momen TI — versi tanpa login (admin + tamu) · v12
 
 Album foto acara dari kamera peserta. Peserta scan QR, mengisi nama, memotret dari HP dengan filter ala film, dan semua foto terkumpul dalam satu album.
 
@@ -11,6 +11,17 @@ Album foto acara dari kamera peserta. Peserta scan QR, mengisi nama, memotret da
 | Akses | **Admin** dengan kata sandi; **semua peserta** cukup mengisi nama (+ kode akses bila diatur) |
 
 Tidak perlu Google Cloud, OAuth, atau akun kampus.
+
+## Yang baru di v12: Album per hari
+
+Untuk acara lebih dari satu hari, album jadi lebih mudah dijelajahi:
+
+- **Pilihan hari** di atas album: *Semua hari · Hari 3 · Sel 27 Okt · Hari 2 · …* lengkap dengan jumlah foto. Bawaannya membuka **hari terakhir**.
+- **Semua hari**: foto dikelompokkan per hari dengan judul tanggal yang tetap terlihat saat digulir. Setiap hari hanya menampilkan **12 foto pertama**, lalu tombol **"Lihat semua 124 foto hari ini ›"** untuk membuka hari tersebut.
+- **Terbaru dulu**: selama acara berlangsung, foto terbaru tampil paling atas (dan hari terbaru di urutan pertama). Setelah acara selesai, urutan kembali dari awal acara.
+- Pilihan hari berlaku juga untuk tab *Foto saya* dan *Terfavorit*.
+
+Acara satu hari tidak berubah: tidak ada pilihan hari, hanya urutan terbaru dulu selama acara berlangsung. Hari dihitung menurut waktu WIB.
 
 ## Yang baru di v11: Navigasi album lebih mudah
 
@@ -148,7 +159,7 @@ Foto yang terkirim terlambat karena sinyal buruk tetap dihitung pada rol atau ha
 
 ## Memperbarui dari versi sebelumnya
 
-(Berlaku juga untuk pembaruan v2–v10 → v11. Kolom `captions`, `captionPresets`, dan `caption` dibuat otomatis. Kolom `accent` dan `coverId` dibuat otomatis; acara lama memakai warna Toska. Sheet `Feedback` dibuat otomatis. Kolom baru seperti `boothPin`, `boothName`, `quotaMode`, `rollHours`, `period`, dan `periodShots` dibuat otomatis. Acara lama otomatis memakai jenis jatah **Total selama acara**.)
+(Berlaku juga untuk pembaruan v2–v11 → v12. Kolom `captions`, `captionPresets`, dan `caption` dibuat otomatis. Kolom `accent` dan `coverId` dibuat otomatis; acara lama memakai warna Toska. Sheet `Feedback` dibuat otomatis. Kolom baru seperti `boothPin`, `boothName`, `quotaMode`, `rollHours`, `period`, dan `periodShots` dibuat otomatis. Acara lama otomatis memakai jenis jatah **Total selama acara**.)
 
 
 1. Apps Script: ganti **seluruh** isi `Code.gs` dengan file baru → **Save**.
