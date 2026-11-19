@@ -21,6 +21,7 @@ const FILTERS = {
 };
 
 function applyFilter(ctx, w, h, name) {
+  if (FILTERS[name] && FILTERS[name].lr) return applyPreset(ctx, w, h, FILTERS[name]); // preset Lightroom (presets.js)
   const f = FILTERS[name] && FILTERS[name].p;
   if (!f) return;
   const img = ctx.getImageData(0, 0, w, h);

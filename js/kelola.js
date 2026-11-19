@@ -46,7 +46,7 @@
 
     if (!$('#settings').open) {
       $('#form-fields').innerHTML = eventFormHtml(ev);
-      bindEventForm($('#edit-form'));
+      bindEventForm($('#edit-form'), ev);
     }
     renderBooth(ev.booth);
     thumbs = thumbs || ThumbLoader(ev.slug, () => null);

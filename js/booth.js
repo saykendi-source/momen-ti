@@ -87,6 +87,7 @@
       return note('Booth belum bisa dibuka', err.message, '<button class="big-btn" onclick="location.reload()">Coba lagi</button>');
     }
     const e = info.event;
+    if ((e.presets || []).length) await applyEventPresets(e).catch(() => {}); else setFilterList([], false);
     filter = e.filter in FILTERS ? e.filter : 'asli';
     document.title = `Booth · ${e.name}`;
     $('#ev-name').textContent = e.name; $('#ev-name2').textContent = e.name;
@@ -168,16 +169,32 @@
   }
 
   /* ---------- Siap memotret ---------- */
+  // Filter bawaan memakai CSS; preset Lightroom memakai pratinjau WebGL di kanvas #camgl.
+  let glView = null;
+  function setView() {
+    const f = FILTERS[filter] || FILTERS.asli;
+    if (f.lr && !glView) {
+      glView = new LutView($('#camgl'), $('#cam'));
+      // Kanvas ikut keadaan video (redup / mati) agar tampilan layar sama seperti sebelumnya.
+      new MutationObserver(() => ['off', 'dim'].forEach((c) => $('#camgl').classList.toggle(c, $('#cam').classList.contains(c))))
+        .observe($('#cam'), { attributes: true, attributeFilter: ['class'] });
+      ['off', 'dim'].forEach((c) => $('#camgl').classList.toggle(c, $('#cam').classList.contains(c)));
+    }
+    let gl = false;
+    try { gl = glView ? glView.set(f.lr ? f : null) : false; } catch (err) { console.warn(err); }
+    $('#cam').style.filter = f.lr ? '' : f.css;
+    $('#cam').classList.toggle('under-gl', gl);
+  }
   function renderFilters() {
     $('#filters').innerHTML = Object.entries(FILTERS).map(([k, f]) =>
-      `<button type="button" data-f="${k}" aria-pressed="${k === filter}">${f.label}</button>`).join('');
-    $('#cam').style.filter = FILTERS[filter].css;
+      `<button type="button" data-f="${esc(k)}" aria-pressed="${k === filter}">${esc(f.label)}</button>`).join('');
+    setView();
   }
   $('#filters').addEventListener('click', (e) => {
     const b = e.target.closest('[data-f]'); if (!b) return;
     filter = b.dataset.f;
     $$('#filters button').forEach((x) => x.setAttribute('aria-pressed', x === b));
-    $('#cam').style.filter = FILTERS[filter].css;
+    setView();
     bumpIdle();
   });
   function stepFilter(d) {
@@ -194,7 +211,7 @@
     if (!(await startCamera())) return;
     $('#cam').classList.remove('off');
     show('s-ready');
-    $('#cam').style.filter = FILTERS[filter].css;
+    setView();
     bumpIdle();
     setTimeout(() => $('#btn-shoot').focus?.(), 50);
   }

@@ -1,6 +1,8 @@
 const slug = qs('e') || '';
 let info = null;          // data acara dari server
 let currentFilter = 'asli';
+let filterPicked = false;   // peserta sudah memilih filter sendiri
+let glView = null;          // pratinjau WebGL untuk preset Lightroom
 let facing = 'environment';
 let stream = null;
 let quota = { mode: 'total', left: 0, max: 0, resetAt: null }; // jatah dari server
@@ -66,11 +68,10 @@ function render(d) {
   }
   // Kamera
   quota = d.quota || { mode: 'total', left: d.shotsLeft, max: e.maxPhotos, resetAt: null };
-  currentFilter = e.filter in FILTERS ? e.filter : 'asli';
   $('#album-link').href = `album.html?e=${encodeURIComponent(slug)}`;
   $('#album-link').classList.toggle('hidden', !(state.revealed || d.canManage));
   $('#vf').classList.toggle('square', e.frame === 'polaroid');
-  renderFilters();
+  setupFilters(e);
   show('s-cam');
   startCamera();
   const savedLast = store.get(LAST_KEY);
@@ -221,10 +222,40 @@ document.addEventListener('visibilitychange', () => {
 });
 window.addEventListener('online', () => sendQueue());
 
+// Susun daftar filter: filter film bawaan + preset Lightroom pilihan admin.
+let filterSig = '';
+function setupFilters(e) {
+  const go = () => {
+    if (!(filterPicked && currentFilter in FILTERS)) currentFilter = e.filter in FILTERS ? e.filter : 'asli';
+    const sig = Object.keys(FILTERS).join() + '|' + currentFilter;
+    if (sig !== filterSig || !$('#filters').children.length) { filterSig = sig; renderFilters(); }
+  };
+  if (!(e.presets || []).length) { setFilterList([], false); go(); return; }
+  applyEventPresets(e).then(go, go);
+}
+
+// Siapkan LUT preset satu per satu di sela waktu luang, supaya halaman tidak tersendat.
+function warmPresets() {
+  const todo = Object.values(FILTERS).filter((f) => f.lr && !f._data);
+  const next = () => { const f = todo.shift(); if (!f) return; try { presetData(f); } catch (err) { console.warn(err); } setTimeout(next, 30); };
+  setTimeout(next, 300);
+}
+
+// Jendela bidik: filter bawaan memakai CSS, preset Lightroom memakai WebGL (sama persis dengan hasil foto).
+function setView() {
+  const f = FILTERS[currentFilter] || FILTERS.asli;
+  if (f.lr && !glView) glView = new LutView($('#glview'), $('#video'));
+  let gl = false;
+  try { gl = glView ? glView.set(f.lr ? f : null) : false; } catch (err) { console.warn(err); }
+  $('#video').style.filter = f.lr ? 'none' : f.css;
+  $('#video').classList.toggle('under-gl', gl);
+}
+
 function renderFilters() {
   $('#filters').innerHTML = Object.entries(FILTERS).map(([k, f]) =>
-    `<button type="button" data-f="${k}" aria-pressed="${k === currentFilter}" aria-label="Filter ${f.label} (${f.mood})"><canvas width="96" height="96" style="filter:${f.css}"></canvas>${f.label}</button>`).join('');
-  $('#video').style.filter = FILTERS[currentFilter].css;
+    `<button type="button" data-f="${esc(k)}" aria-pressed="${k === currentFilter}" aria-label="Filter ${esc(f.label)} (${f.mood})"${f.lr ? ' class="lr"' : ''}><canvas width="96" height="96" style="filter:${f.css}"></canvas>${esc(f.label)}</button>`).join('');
+  setView();
+  warmPresets();
   requestAnimationFrame(() => $('#filters [aria-pressed="true"]')?.scrollIntoView({ inline: 'center', block: 'nearest' }));
   startPreviews();
 }
@@ -238,11 +269,13 @@ function startPreviews() {
     if (document.hidden || $('#s-cam').classList.contains('hidden') || !v.videoWidth) return;
     const s = Math.min(v.videoWidth, v.videoHeight), sx = (v.videoWidth - s) / 2, sy = (v.videoHeight - s) / 2;
     $$('#filters canvas').forEach((c) => {
-      const x = c.getContext('2d');
+      const x = c.getContext('2d', { willReadFrequently: true });
       x.save();
       if (facing === 'user') { x.translate(c.width, 0); x.scale(-1, 1); }
       x.drawImage(v, sx, sy, s, s, 0, 0, c.width, c.height);
       x.restore();
+      const f = FILTERS[c.parentNode.dataset.f];
+      if (f && f.lr && f._data) previewPreset(x, c.width, c.height, f);
     });
   };
   draw();
@@ -250,9 +283,10 @@ function startPreviews() {
 }
 $('#filters').addEventListener('click', (e) => {
   const b = e.target.closest('[data-f]'); if (!b) return;
-  currentFilter = b.dataset.f;
+  currentFilter = b.dataset.f; filterPicked = true;
+  filterSig = Object.keys(FILTERS).join() + '|' + currentFilter;
   $$('#filters button').forEach((x) => x.setAttribute('aria-pressed', x === b));
-  $('#video').style.filter = FILTERS[currentFilter].css;
+  setView();
 });
 
 const unlimited = () => quota.mode === 'bebas';

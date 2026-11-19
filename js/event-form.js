@@ -39,10 +39,11 @@ function eventFormHtml(e = {}) {
     </div>
     <div class="grid2">
       <div><label for="f-filter">Filter awal</label>
-        <select id="f-filter" name="filter">${Object.entries(FILTERS).map(([k, f]) => opt(k, filter, `${f.label} (${f.mood})`)).join('')}</select></div>
+        <select id="f-filter" name="filter">${Object.entries(typeof BUILTIN_FILTERS !== 'undefined' ? BUILTIN_FILTERS : FILTERS).map(([k, f]) => opt(k, filter, `${f.label} (${f.mood})`)).join('')}${/^[lu]:/.test(filter) ? `<option value="${esc(filter)}" selected>Preset</option>` : ''}</select></div>
       <div><label for="f-frame">Bingkai foto</label>
         <select id="f-frame" name="frame">${opt('polaroid', frame, 'Polaroid dengan nama acara')}${opt('polos', frame, 'Polos, tanpa bingkai')}</select></div>
     </div>
+    ${typeof presetFieldHtml === 'function' ? presetFieldHtml(e) : ''}
     <div class="field">
       <span class="label-like">Warna acara <span class="hint">Dipakai untuk tombol, penghitung, dan poster</span></span>
       <div class="swatches" role="radiogroup" aria-label="Warna acara">
@@ -68,7 +69,8 @@ function maxLabel(mode) {
   return mode === 'harian' ? 'Jatah foto per orang per hari' : mode === 'rol' ? 'Isi satu rol (foto per orang)' : 'Jatah foto per orang';
 }
 
-function bindEventForm(form) {
+function bindEventForm(form, e = {}) {
+  if (typeof bindPresetField === 'function') bindPresetField(form, e);
   const sel = form.querySelector('[name=reveal]');
   sel.addEventListener('change', () => form.querySelector('.reveal-at').classList.toggle('hidden', sel.value !== 'jadwal'));
   const cap = form.querySelector('[name=captions]');
@@ -110,5 +112,9 @@ function readEventForm(form) {
     captions: form.querySelector('[name=captions]').checked,
     captionPresets: form.querySelector('[name=captionPresets]').value,
     accent: form.querySelector('[name=accent]:checked')?.value || ACCENTS[0][0],
+    ...(form.querySelector('[name=presets]') ? {
+      presets: v('presets').split(',').filter(Boolean),
+      presetOnly: form.querySelector('[name=presetOnly]').checked,
+    } : {}),
   };
 }
